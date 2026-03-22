@@ -25,6 +25,11 @@ public:
     void shutdown();
     bool start();
     void stop();
+    bool restart();  // stop + start (for manual recovery)
+
+    // Error reporting
+    std::string get_last_error() const { return last_error_; }
+    void clear_error() { last_error_.clear(); }
 
     // Device management
     std::vector<AudioDeviceInfo> get_input_devices() const;
@@ -72,6 +77,7 @@ private:
     void process_audio(const float* input, float* output, int frame_count);
     void auto_detect_devices();
     static bool is_usb_device_name(const std::string& name);
+    bool devices_share_host_api(int input_dev, int output_dev) const;
 
     PaStream* stream_ = nullptr;
     bool initialized_ = false;
@@ -92,6 +98,7 @@ private:
     std::vector<float> process_buffer_;
     std::mutex effect_mutex_;
     Recorder recorder_;
+    std::string last_error_;
 };
 
 } // namespace GuitarAmp

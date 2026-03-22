@@ -1,5 +1,6 @@
 #include "gui/gui_manager.h"
 #include "gui/pedal_board.h"
+#include "gui/theme.h"
 
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -7,6 +8,12 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <cstring>
+
+#define NANOSVG_IMPLEMENTATION
+#include "nanosvg.h"
+#define NANOSVGRAST_IMPLEMENTATION
+#include "nanosvgrast.h"
 
 namespace GuitarAmp {
 
@@ -36,7 +43,7 @@ bool GuiManager::initialize(int width, int height) {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     window_ = SDL_CreateWindow(
-        "Guitar Amp Simulator",
+        Theme::WINDOW_TITLE,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         window_width_, window_height_,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
@@ -57,31 +64,38 @@ bool GuiManager::initialize(int width, int height) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    // Dark theme with custom colors for amp feel
+    // Amplitron design system
     ImGui::StyleColorsDark();
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding = 6.0f;
-    style.FrameRounding = 4.0f;
-    style.GrabRounding = 4.0f;
-    style.FramePadding = ImVec2(8, 4);
-    style.ItemSpacing = ImVec2(10, 8);
+    Theme::ApplyStyle();
 
-    // Color scheme: dark metallic
-    ImVec4* colors = style.Colors;
-    colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.12f, 1.00f);
-    colors[ImGuiCol_FrameBg] = ImVec4(0.16f, 0.16f, 0.20f, 1.00f);
-    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.22f, 0.22f, 0.28f, 1.00f);
-    colors[ImGuiCol_FrameBgActive] = ImVec4(0.28f, 0.28f, 0.35f, 1.00f);
-    colors[ImGuiCol_TitleBg] = ImVec4(0.08f, 0.08f, 0.10f, 1.00f);
-    colors[ImGuiCol_TitleBgActive] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f);
-    colors[ImGuiCol_Header] = ImVec4(0.20f, 0.20f, 0.25f, 1.00f);
-    colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.38f, 1.00f);
-    colors[ImGuiCol_Button] = ImVec4(0.20f, 0.20f, 0.25f, 1.00f);
-    colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.30f, 0.38f, 1.00f);
-    colors[ImGuiCol_ButtonActive] = ImVec4(0.40f, 0.25f, 0.20f, 1.00f);
-    colors[ImGuiCol_SliderGrab] = ImVec4(0.80f, 0.50f, 0.20f, 1.00f);
-    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.95f, 0.60f, 0.25f, 1.00f);
-    colors[ImGuiCol_CheckMark] = ImVec4(0.90f, 0.55f, 0.20f, 1.00f);
+    // Load window icon from assets/icon.svg
+    {
+        NSVGimage* svg = nsvgParseFromFile("../assets/icon.svg", "px", 96.0f);
+        if (svg) {
+            const int icon_size = 64;  // 64x64 icon
+            NSVGrasterizer* rast = nsvgCreateRasterizer();
+            if (rast) {
+                unsigned char* img = new unsigned char[icon_size * icon_size * 4];
+                nsvgRasterize(rast, svg, 0, 0,
+                             icon_size / svg->width,
+                             img, icon_size, icon_size,
+                             icon_size * 4);
+
+                SDL_Surface* icon = SDL_CreateRGBSurfaceFrom(
+                    img, icon_size, icon_size, 32, icon_size * 4,
+                    0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+                if (icon) {
+                    SDL_SetWindowIcon(window_, icon);
+                    SDL_FreeSurface(icon);
+                }
+                delete[] img;
+                nsvgDeleteRasterizer(rast);
+            }
+            nsvgDelete(svg);
+        } else {
+            std::cerr << "Warning: Could not load assets/icon.svg" << std::endl;
+        }
+    }
 
     ImGui_ImplSDL2_InitForOpenGL(window_, gl_context_);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -174,7 +188,7 @@ bool GuiManager::run_frame() {
     int display_w, display_h;
     SDL_GL_GetDrawableSize(window_, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
-    glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
+    glClearColor(0.078f, 0.071f, 0.063f, 1.0f);  // #141210 BG_DARKEST
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window_);
@@ -206,7 +220,13 @@ void GuiManager::render_menu_bar() {
             if (engine_.is_running()) {
                 if (ImGui::MenuItem("Stop Audio")) engine_.stop();
             } else {
-                if (ImGui::MenuItem("Start Audio")) engine_.start();
+                if (ImGui::MenuItem("Start Audio")) {
+                    engine_.restart();
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Restart Audio")) {
+                engine_.restart();
             }
             ImGui::EndMenu();
         }
@@ -218,8 +238,7 @@ void GuiManager::render_menu_bar() {
         ImGui::SameLine(bar_w - 400);
         if (engine_.recorder().is_recording()) {
             float t = static_cast<float>(ImGui::GetTime());
-            float blink = (std::sin(t * 4.0f) > 0.0f) ? 1.0f : 0.3f;
-            ImGui::TextColored(ImVec4(1.0f, 0.1f, 0.1f, blink), "REC");
+            ImGui::TextColored(Theme::RecBlink(t), "REC");
             ImGui::SameLine();
             ImGui::Text("%.1fs", engine_.recorder().get_duration());
         }
@@ -227,14 +246,36 @@ void GuiManager::render_menu_bar() {
         // Audio status
         ImGui::SameLine(bar_w - 200);
         if (engine_.is_running()) {
-            ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.3f, 1.0f), "LIVE");
+            ImGui::TextColored(Theme::Live(), "LIVE");
         } else {
-            ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.0f), "STOPPED");
+            ImGui::TextColored(Theme::Stopped(), "STOPPED");
         }
         ImGui::SameLine();
         ImGui::Text("%dHz", engine_.get_sample_rate());
 
         ImGui::EndMainMenuBar();
+    }
+
+    // Error banner when audio is stopped
+    if (!engine_.is_running()) {
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.35f, 0.08f, 0.08f, 0.95f));
+        ImGui::BeginChild("AudioErrorBanner", ImVec2(0, 36), true);
+        ImGui::TextColored(Theme::Stopped(), "Audio stream is STOPPED.");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Restart Audio")) {
+            engine_.restart();
+        }
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Settings")) {
+            show_settings_ = true;
+        }
+        std::string err = engine_.get_last_error();
+        if (!err.empty()) {
+            ImGui::SameLine();
+            ImGui::TextColored(Theme::GoldHot(), "  %s", err.c_str());
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
     }
 }
 
@@ -264,12 +305,13 @@ void GuiManager::render_master_controls() {
     float meter_w = ImGui::GetColumnWidth() - 20;
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + meter_w, meter_pos.y + 20),
-                       IM_COL32(30, 30, 35, 255));
+                       Theme::METER_BG, Theme::ROUNDING_SM);
     float fill = std::min(smoothed_input_level_, 1.0f) * meter_w;
-    ImU32 meter_color = (smoothed_input_level_ > 0.9f) ? IM_COL32(255, 50, 50, 255) :
-                        (smoothed_input_level_ > 0.6f) ? IM_COL32(255, 200, 50, 255) :
-                                                          IM_COL32(50, 200, 80, 255);
-    dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + fill, meter_pos.y + 20), meter_color);
+    ImU32 meter_color = (smoothed_input_level_ > 0.9f) ? Theme::METER_RED :
+                        (smoothed_input_level_ > 0.6f) ? Theme::METER_YELLOW :
+                                                          Theme::METER_GREEN;
+    dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + fill, meter_pos.y + 20),
+                       meter_color, Theme::ROUNDING_SM);
     ImGui::Dummy(ImVec2(meter_w, 20));
 
     ImGui::NextColumn();
@@ -279,12 +321,13 @@ void GuiManager::render_master_controls() {
     meter_pos = ImGui::GetCursorScreenPos();
     meter_w = ImGui::GetColumnWidth() - 20;
     dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + meter_w, meter_pos.y + 20),
-                       IM_COL32(30, 30, 35, 255));
+                       Theme::METER_BG, Theme::ROUNDING_SM);
     fill = std::min(smoothed_output_level_, 1.0f) * meter_w;
-    meter_color = (smoothed_output_level_ > 0.9f) ? IM_COL32(255, 50, 50, 255) :
-                  (smoothed_output_level_ > 0.6f) ? IM_COL32(255, 200, 50, 255) :
-                                                     IM_COL32(50, 200, 80, 255);
-    dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + fill, meter_pos.y + 20), meter_color);
+    meter_color = (smoothed_output_level_ > 0.9f) ? Theme::METER_RED :
+                  (smoothed_output_level_ > 0.6f) ? Theme::METER_YELLOW :
+                                                     Theme::METER_GREEN;
+    dl->AddRectFilled(meter_pos, ImVec2(meter_pos.x + fill, meter_pos.y + 20),
+                       meter_color, Theme::ROUNDING_SM);
     ImGui::Dummy(ImVec2(meter_w, 20));
 
     ImGui::NextColumn();
@@ -308,12 +351,12 @@ void GuiManager::render_settings_window() {
     }
 
     // --- Current routing summary ---
-    ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.2f, 1.0f), "SIGNAL ROUTING");
+    ImGui::TextColored(Theme::Gold(), "SIGNAL ROUTING");
     ImGui::BeginChild("RoutingSummary", ImVec2(0, 60), true);
-    ImGui::TextColored(ImVec4(0.5f, 0.9f, 0.5f, 1.0f), "Guitar IN:");
+    ImGui::TextColored(Theme::Live(), "Guitar IN:");
     ImGui::SameLine();
     ImGui::Text("%s", engine_.get_input_device_name().c_str());
-    ImGui::TextColored(ImVec4(0.5f, 0.7f, 1.0f, 1.0f), "Speaker OUT:");
+    ImGui::TextColored(ImVec4(0.35f, 0.60f, 0.95f, 1.0f), "Speaker OUT:");
     ImGui::SameLine();
     ImGui::Text("%s", engine_.get_output_device_name().c_str());
     ImGui::EndChild();
@@ -321,7 +364,7 @@ void GuiManager::render_settings_window() {
     ImGui::Spacing();
 
     // --- Latency settings ---
-    ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.2f, 1.0f), "LATENCY");
+    ImGui::TextColored(Theme::Gold(), "LATENCY");
 
     // Buffer size
     ImGui::Text("Buffer Size (lower = less latency, more CPU):");
@@ -354,7 +397,7 @@ void GuiManager::render_settings_window() {
     ImGui::Separator();
 
     // --- Input device (USB Guitar Cable) ---
-    ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.2f, 1.0f),
+    ImGui::TextColored(Theme::Gold(),
         "INPUT DEVICE (USB Guitar Cable)");
     ImGui::TextWrapped(
         "Select your USB guitar cable or audio interface. "
@@ -371,7 +414,7 @@ void GuiManager::render_settings_window() {
         }
 
         if (dev.is_usb_device) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 1.0f, 0.5f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, Theme::GoldHot());
         }
 
         if (ImGui::Selectable(label.c_str(), is_selected)) {
@@ -384,14 +427,10 @@ void GuiManager::render_settings_window() {
     }
     ImGui::EndChild();
 
-    ImGui::Separator();
+    ImGui::Spacing();
 
-    // --- Output device (Laptop Speakers / Headphones) ---
-    ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.2f, 1.0f),
-        "OUTPUT DEVICE (Laptop Speakers / Headphones)");
-    ImGui::TextWrapped(
-        "Select your laptop speakers, headphone output, or external speakers. "
-        "Avoid selecting the USB guitar cable as output.");
+    // --- Output device ---
+    ImGui::TextColored(Theme::Gold(), "OUTPUT DEVICE (Speakers/Headphones)");
 
     int current_output = engine_.get_output_device();
     auto output_devs = engine_.get_output_devices();

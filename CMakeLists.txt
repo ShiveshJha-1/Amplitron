@@ -102,6 +102,7 @@ add_executable(guitar-amp ${APP_SOURCES} ${IMGUI_SOURCES})
 
 target_include_directories(guitar-amp PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/external
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${PORTAUDIO_INCLUDE_DIRS}
@@ -121,6 +122,56 @@ endif()
 
 if(UNIX AND NOT APPLE)
     target_link_libraries(guitar-amp PRIVATE dl pthread)
+endif()
+
+# --- Test Target ---
+set(TEST_SOURCES
+    tests/test_main.cpp
+    tests/test_common.cpp
+    tests/test_effects.cpp
+    tests/test_preset_manager.cpp
+    tests/test_recorder.cpp
+    tests/test_theme.cpp
+)
+
+# Effect + core sources needed by tests (no GUI, no main)
+set(CORE_SOURCES
+    src/preset_manager.cpp
+    src/audio/audio_engine.cpp
+    src/audio/recorder.cpp
+    src/audio/effects/distortion.cpp
+    src/audio/effects/overdrive.cpp
+    src/audio/effects/delay.cpp
+    src/audio/effects/reverb.cpp
+    src/audio/effects/chorus.cpp
+    src/audio/effects/equalizer.cpp
+    src/audio/effects/noise_gate.cpp
+    src/audio/effects/compressor.cpp
+    src/audio/effects/cabinet_sim.cpp
+)
+
+add_executable(amplitron-tests ${TEST_SOURCES} ${CORE_SOURCES})
+
+target_include_directories(amplitron-tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+    ${PORTAUDIO_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+)
+
+target_link_libraries(amplitron-tests PRIVATE
+    ${PORTAUDIO_LIBRARIES}
+)
+
+if(WIN32)
+    target_link_libraries(amplitron-tests PRIVATE winmm ole32 setupapi)
+endif()
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(amplitron-tests PRIVATE dl pthread)
 endif()
 
 # Install

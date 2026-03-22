@@ -1,5 +1,6 @@
 #include "gui/pedal_board.h"
 #include "gui/pedal_widget.h"
+#include "gui/theme.h"
 
 #include "audio/effects/noise_gate.h"
 #include "audio/effects/compressor.h"
@@ -47,7 +48,7 @@ void PedalBoard::render() {
         }
     }
     ImGui::SameLine();
-    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.6f, 1.0f),
+    ImGui::TextColored(Theme::TextSecondary(),
         "  Signal Chain: %d pedals | Drag knobs to adjust | Double-click to reset knob",
         static_cast<int>(engine_.effects().size()));
 
@@ -68,7 +69,7 @@ void PedalBoard::render_add_pedal_menu() {
     }
 
     if (ImGui::BeginPopup("AddPedalPopup")) {
-        ImGui::TextColored(ImVec4(0.8f, 0.6f, 0.2f, 1.0f), "DRIVE");
+        ImGui::TextColored(Theme::Gold(), "DRIVE");
         if (ImGui::MenuItem("Overdrive")) {
             engine_.add_effect(std::make_shared<Overdrive>());
             rebuild_widgets();
@@ -79,7 +80,7 @@ void PedalBoard::render_add_pedal_menu() {
         }
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.4f, 1.0f), "DYNAMICS");
+        ImGui::TextColored(Theme::Live(), "DYNAMICS");
         if (ImGui::MenuItem("Noise Gate")) {
             engine_.add_effect(std::make_shared<NoiseGate>());
             rebuild_widgets();
@@ -90,14 +91,14 @@ void PedalBoard::render_add_pedal_menu() {
         }
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "MODULATION");
+        ImGui::TextColored(ImVec4(0.35f, 0.60f, 0.95f, 1.0f), "MODULATION");
         if (ImGui::MenuItem("Chorus")) {
             engine_.add_effect(std::make_shared<Chorus>());
             rebuild_widgets();
         }
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.6f, 0.3f, 1.0f, 1.0f), "TIME");
+        ImGui::TextColored(ImVec4(0.65f, 0.35f, 0.95f, 1.0f), "TIME");
         if (ImGui::MenuItem("Delay")) {
             engine_.add_effect(std::make_shared<Delay>());
             rebuild_widgets();
@@ -108,7 +109,7 @@ void PedalBoard::render_add_pedal_menu() {
         }
 
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "TONE");
+        ImGui::TextColored(Theme::GoldDim(), "TONE");
         if (ImGui::MenuItem("Equalizer")) {
             engine_.add_effect(std::make_shared<Equalizer>());
             rebuild_widgets();
@@ -128,7 +129,7 @@ void PedalBoard::render_signal_chain() {
             ImGui::GetWindowWidth() / 2 - 150,
             ImGui::GetWindowHeight() / 2 - 30
         ));
-        ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.5f, 1.0f),
+        ImGui::TextColored(Theme::TextDim(),
             "No pedals in chain.\nClick '+ Add Pedal' to get started.");
         return;
     }
@@ -142,12 +143,12 @@ void PedalBoard::render_signal_chain() {
     dl->AddLine(
         ImVec2(origin.x, line_y),
         ImVec2(origin.x + total_width, line_y),
-        IM_COL32(60, 60, 70, 150), 3.0f
+        Theme::CHAIN_LINE, 3.0f
     );
 
     // Input jack
-    dl->AddCircleFilled(ImVec2(origin.x + 5, line_y), 6, IM_COL32(180, 180, 190, 255));
-    dl->AddCircle(ImVec2(origin.x + 5, line_y), 6, IM_COL32(100, 100, 110, 255), 0, 1.5f);
+    dl->AddCircleFilled(ImVec2(origin.x + 5, line_y), 6, Theme::CHAIN_JACK);
+    dl->AddCircle(ImVec2(origin.x + 5, line_y), 6, Theme::BORDER_DARK, 0, 1.5f);
 
     // Render each pedal
     float pedal_x = origin.x + 20;
@@ -163,15 +164,15 @@ void PedalBoard::render_signal_chain() {
         // Connection dot between pedals
         if (i < static_cast<int>(widgets_.size()) - 1) {
             float dot_x = pedal_x + 190;
-            dl->AddCircleFilled(ImVec2(dot_x, line_y), 4, IM_COL32(120, 120, 140, 200));
+            dl->AddCircleFilled(ImVec2(dot_x, line_y), 4, Theme::CHAIN_DOT);
         }
 
         pedal_x += 195;
     }
 
     // Output jack
-    dl->AddCircleFilled(ImVec2(pedal_x, line_y), 6, IM_COL32(180, 180, 190, 255));
-    dl->AddCircle(ImVec2(pedal_x, line_y), 6, IM_COL32(100, 100, 110, 255), 0, 1.5f);
+    dl->AddCircleFilled(ImVec2(pedal_x, line_y), 6, Theme::CHAIN_JACK);
+    dl->AddCircle(ImVec2(pedal_x, line_y), 6, Theme::BORDER_DARK, 0, 1.5f);
 
     // Handle removal
     if (remove_idx >= 0) {

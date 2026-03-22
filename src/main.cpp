@@ -26,7 +26,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    std::cout << "=== Guitar Amp Simulator v1.0 ===" << std::endl;
+    std::cout << "=== Amplitron v1.0 - Guitar Amp Simulator ===" << std::endl;
     std::cout << "Starting up..." << std::endl;
 
     // Initialize audio engine
@@ -100,7 +100,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
         return 1;
     }
 
-    std::cout << "GUI initialized. Ready to rock!" << std::endl;
+    std::cout << "Amplitron is ready. Let's play!" << std::endl;
 
     // Main loop
     while (g_running && gui.run_frame()) {

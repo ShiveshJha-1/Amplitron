@@ -1,4 +1,5 @@
 #include "gui/pedal_widget.h"
+#include "gui/theme.h"
 #include <cstring>
 #include <cmath>
 
@@ -10,38 +11,10 @@ PedalWidget::PedalWidget(std::shared_ptr<Effect> effect, int index)
 }
 
 void PedalWidget::assign_colors() {
-    const char* n = effect_->name();
-    if (std::strcmp(n, "Distortion") == 0) {
-        pedal_color_ = ImVec4(0.55f, 0.15f, 0.10f, 1.0f);
-        led_color_ = ImVec4(1.0f, 0.2f, 0.2f, 1.0f);
-    } else if (std::strcmp(n, "Overdrive") == 0) {
-        pedal_color_ = ImVec4(0.55f, 0.40f, 0.10f, 1.0f);
-        led_color_ = ImVec4(1.0f, 0.8f, 0.1f, 1.0f);
-    } else if (std::strcmp(n, "Delay") == 0) {
-        pedal_color_ = ImVec4(0.10f, 0.25f, 0.50f, 1.0f);
-        led_color_ = ImVec4(0.3f, 0.6f, 1.0f, 1.0f);
-    } else if (std::strcmp(n, "Reverb") == 0) {
-        pedal_color_ = ImVec4(0.15f, 0.35f, 0.45f, 1.0f);
-        led_color_ = ImVec4(0.2f, 0.8f, 0.9f, 1.0f);
-    } else if (std::strcmp(n, "Chorus") == 0) {
-        pedal_color_ = ImVec4(0.30f, 0.15f, 0.45f, 1.0f);
-        led_color_ = ImVec4(0.7f, 0.3f, 1.0f, 1.0f);
-    } else if (std::strcmp(n, "Equalizer") == 0) {
-        pedal_color_ = ImVec4(0.15f, 0.40f, 0.20f, 1.0f);
-        led_color_ = ImVec4(0.2f, 1.0f, 0.4f, 1.0f);
-    } else if (std::strcmp(n, "Noise Gate") == 0) {
-        pedal_color_ = ImVec4(0.25f, 0.25f, 0.30f, 1.0f);
-        led_color_ = ImVec4(0.8f, 0.8f, 0.9f, 1.0f);
-    } else if (std::strcmp(n, "Compressor") == 0) {
-        pedal_color_ = ImVec4(0.40f, 0.30f, 0.15f, 1.0f);
-        led_color_ = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
-    } else if (std::strcmp(n, "Cabinet") == 0) {
-        pedal_color_ = ImVec4(0.30f, 0.20f, 0.10f, 1.0f);
-        led_color_ = ImVec4(0.9f, 0.6f, 0.3f, 1.0f);
-    } else {
-        pedal_color_ = ImVec4(0.25f, 0.25f, 0.28f, 1.0f);
-        led_color_ = ImVec4(0.5f, 0.9f, 0.5f, 1.0f);
-    }
+    // SOLID: Open/Closed — color lookup via theme table, no modification needed to add effects
+    const auto* entry = get_effect_color(effect_->name());
+    pedal_color_ = entry->pedal_color;
+    led_color_ = entry->led_color;
 }
 
 bool PedalWidget::render() {
@@ -49,8 +22,8 @@ bool PedalWidget::render() {
 
     ImGui::PushID(index_);
 
-    float pedal_width = 190.0f;
-    float pedal_height = 340.0f;
+    float pedal_width = Theme::PEDAL_WIDTH;
+    float pedal_height = Theme::PEDAL_HEIGHT;
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -63,25 +36,25 @@ bool PedalWidget::render() {
     dl->AddRectFilled(
         ImVec2(p0.x + 4, p0.y + 4),
         ImVec2(p1.x + 4, p1.y + 4),
-        IM_COL32(0, 0, 0, 100), 8.0f
+        Theme::PEDAL_SHADOW, Theme::ROUNDING_MD
     );
 
     // Body
     ImU32 body_color = ImGui::ColorConvertFloat4ToU32(pedal_color_);
-    dl->AddRectFilled(p0, p1, body_color, 8.0f);
+    dl->AddRectFilled(p0, p1, body_color, Theme::ROUNDING_MD);
 
     // Border
-    dl->AddRect(p0, p1, IM_COL32(80, 80, 90, 255), 8.0f, 0, 2.0f);
+    dl->AddRect(p0, p1, Theme::PEDAL_BORDER, Theme::ROUNDING_MD, 0, 2.0f);
 
     // Metallic top plate
     ImVec2 plate_p0 = ImVec2(p0.x + 8, p0.y + 8);
     ImVec2 plate_p1 = ImVec2(p1.x - 8, p0.y + 45);
     dl->AddRectFilled(plate_p0, plate_p1,
-        IM_COL32(50, 50, 58, 200), 4.0f);
+        Theme::PEDAL_PLATE, Theme::ROUNDING_SM);
 
     // Effect name
     ImGui::SetCursorScreenPos(ImVec2(p0.x + 12, p0.y + 14));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextPrimary());
     ImGui::Text("%s", effect_->name());
     ImGui::PopStyleColor();
 
@@ -91,7 +64,7 @@ bool PedalWidget::render() {
     bool enabled = effect_->is_enabled();
     ImU32 led_col = enabled ?
         ImGui::ColorConvertFloat4ToU32(led_color_) :
-        IM_COL32(40, 40, 45, 255);
+        Theme::LED_OFF;
     dl->AddCircleFilled(ImVec2(led_x, led_y), 6, led_col);
     if (enabled) {
         // Glow effect
@@ -231,7 +204,7 @@ bool PedalWidget::render() {
             bool filled = t0 <= normalized;
             ImU32 seg_color = filled ?
                 ImGui::ColorConvertFloat4ToU32(led_color_) :
-                IM_COL32(40, 40, 48, 255);
+                Theme::KNOB_TRACK_OFF;
 
             dl->AddLine(
                 ImVec2(knob_center.x + std::cos(a0) * track_radius,
@@ -242,10 +215,10 @@ bool PedalWidget::render() {
         }
 
         // Knob body (highlights on hover/active)
-        ImU32 knob_bg = is_active ? IM_COL32(85, 85, 95, 255) :
-                        is_hovered ? IM_COL32(75, 75, 85, 255) :
-                                     IM_COL32(60, 60, 68, 255);
-        dl->AddCircleFilled(knob_center, knob_radius, IM_COL32(20, 20, 24, 255));
+        ImU32 knob_bg = is_active ? Theme::KNOB_ACTIVE :
+                        is_hovered ? Theme::KNOB_HOVER :
+                                     Theme::KNOB_FACE;
+        dl->AddCircleFilled(knob_center, knob_radius, Theme::KNOB_BG);
         dl->AddCircleFilled(knob_center, knob_radius - 1, knob_bg);
 
         // Pointer line (rotates with value)
@@ -260,8 +233,8 @@ bool PedalWidget::render() {
             knob_center.y + std::sin(pointer_angle) * ptr_outer);
 
         ImU32 ptr_color = is_active ?
-            IM_COL32(255, 255, 255, 255) :
-            ImGui::ColorConvertFloat4ToU32(led_color_);
+            Theme::ACCENT_GOLD_HOT :
+            Theme::ACCENT_GOLD;
         dl->AddLine(ptr_from, ptr_to, ptr_color, 2.5f);
         dl->AddCircleFilled(ptr_to, 3.0f, ptr_color);
 
@@ -277,7 +250,7 @@ bool PedalWidget::render() {
         ImGui::SetCursorScreenPos(ImVec2(
             knob_center.x - text_size.x * 0.5f,
             knob_center.y + knob_radius + 8));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextSecondary());
         ImGui::TextUnformatted(pname);
         ImGui::PopStyleColor();
 
@@ -289,8 +262,8 @@ bool PedalWidget::render() {
             knob_center.x - val_size.x * 0.5f,
             knob_center.y - knob_radius - 14));
         ImGui::PushStyleColor(ImGuiCol_Text,
-            is_active ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) :
-                        ImVec4(0.55f, 0.55f, 0.55f, 1.0f));
+            is_active ? Theme::GoldHot() :
+                        Theme::TextDim());
         ImGui::TextUnformatted(val_buf);
         ImGui::PopStyleColor();
     }
@@ -302,10 +275,10 @@ bool PedalWidget::render() {
 
     // Draw footswitch
     ImVec2 sw_center = ImVec2(switch_x + 25, switch_y + 15);
-    dl->AddCircleFilled(sw_center, 18, IM_COL32(45, 45, 50, 255));
-    dl->AddCircle(sw_center, 18, IM_COL32(80, 80, 90, 255), 0, 2.0f);
+    dl->AddCircleFilled(sw_center, 18, Theme::SWITCH_BODY);
+    dl->AddCircle(sw_center, 18, Theme::SWITCH_RING, 0, 2.0f);
     dl->AddCircleFilled(sw_center, 12,
-        enabled ? IM_COL32(70, 70, 78, 255) : IM_COL32(50, 50, 56, 255));
+        enabled ? Theme::SWITCH_ACTIVE : Theme::SWITCH_IDLE);
 
     ImGui::InvisibleButton("##switch", ImVec2(50, 30));
     if (ImGui::IsItemClicked()) {
