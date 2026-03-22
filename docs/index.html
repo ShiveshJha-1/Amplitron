@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplitron - Professional Guitar Amp Simulator</title>
+    <meta name="description" content="Amplitron is a professional guitar amp simulator with real-time audio processing, 9 studio-quality effects, and ultra-low latency.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold: #c8a84a;
+            --gold-hot: #e6c76a;
+            --brown-dark: #1c1a18;
+            --brown-mid: #2a2620;
+            --brown-light: #3d3832;
+            --text-primary: #e8e6e3;
+            --text-dim: #a8a6a3;
+            --green-live: #7fff7f;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--brown-dark) 0%, var(--brown-mid) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+            background: linear-gradient(180deg, rgba(200, 168, 74, 0.1) 0%, transparent 100%);
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hot) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: var(--text-dim);
+            margin-bottom: 30px;
+        }
+
+        .hero {
+            background: var(--brown-light);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 40px 0;
+            border: 2px solid rgba(200, 168, 74, 0.2);
+        }
+
+        .hero h2 {
+            color: var(--gold);
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .feature-card {
+            background: var(--brown-light);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(200, 168, 74, 0.15);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--gold);
+        }
+
+        .feature-card h3 {
+            color: var(--gold);
+            margin-bottom: 12px;
+            font-size: 1.3rem;
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .downloads {
+            margin: 60px 0;
+        }
+
+        .downloads h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            color: var(--gold);
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .download-card {
+            background: var(--brown-light);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            border: 2px solid rgba(200, 168, 74, 0.2);
+            transition: all 0.3s;
+        }
+
+        .download-card:hover {
+            border-color: var(--gold);
+            box-shadow: 0 8px 24px rgba(200, 168, 74, 0.2);
+        }
+
+        .platform-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .download-card h3 {
+            color: var(--text-primary);
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .download-card .version {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-hot) 100%);
+            color: var(--brown-dark);
+            padding: 16px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(200, 168, 74, 0.4);
+        }
+
+        .requirements {
+            background: var(--brown-mid);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 40px 0;
+            border-left: 4px solid var(--gold);
+        }
+
+        .requirements h3 {
+            color: var(--gold);
+            margin-bottom: 15px;
+        }
+
+        .requirements ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .requirements li {
+            padding: 8px 0;
+            color: var(--text-dim);
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .requirements li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--gold);
+        }
+
+        .installation {
+            margin: 60px 0;
+        }
+
+        .installation h2 {
+            color: var(--gold);
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+
+        .install-steps {
+            background: var(--brown-light);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .install-steps h4 {
+            color: var(--gold-hot);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .install-steps ol {
+            padding-left: 20px;
+        }
+
+        .install-steps li {
+            margin: 10px 0;
+            color: var(--text-dim);
+        }
+
+        .install-steps code {
+            background: var(--brown-dark);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--green-live);
+            font-family: 'Courier New', monospace;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: 80px;
+            border-top: 1px solid rgba(200, 168, 74, 0.2);
+        }
+
+        footer p {
+            color: var(--text-dim);
+            margin: 10px 0;
+        }
+
+        footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--gold-hot);
+            text-decoration: underline;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(127, 255, 127, 0.1);
+            color: var(--green-live);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .hero {
+                padding: 30px 20px;
+            }
+
+            .download-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">AMPLITRON</h1>
+            <p class="tagline">Professional Guitar Amp Simulator</p>
+            <p style="color: var(--text-dim); font-size: 1.1rem;">
+                Real-time audio processing • Ultra-low latency • Studio-quality effects
+            </p>
+        </header>
+
+        <div class="hero">
+            <h2>Transform Your Guitar Sound</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8; color: var(--text-dim);">
+                Amplitron is a professional-grade guitar amplifier simulator designed for musicians, 
+                producers, and audio enthusiasts. Experience studio-quality tone shaping with 
+                real-time processing, customizable effect chains, and ultra-low latency performance.
+            </p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>🎸 Real-Time Processing</h3>
+                <p>Ultra-low latency audio engine with configurable buffer sizes. Play through your computer with no noticeable delay.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎛️ 9 Studio Effects</h3>
+                <p>Noise Gate, Compressor, Overdrive, Distortion, Equalizer, Chorus, Delay, Reverb, and Cabinet Simulator.</p>
+            </div>
+            <div class="feature-card">
+                <h3>💾 Preset System</h3>
+                <p>Save and load your favorite tones. Share presets with other musicians. Build your signature sound library.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎙️ Multi-Track Recording</h3>
+                <p>Record your performances with automatic metadata tagging. Export high-quality WAV files with full effect chain info.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎨 Beautiful Interface</h3>
+                <p>Intuitive pedal board UI with visual feedback. Drag-and-drop effect ordering. Real-time level metering.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⚡ Cross-Platform</h3>
+                <p>Native builds for Windows, macOS, and Linux. Optimized for each platform with consistent performance.</p>
+            </div>
+        </div>
+
+        <div class="downloads">
+            <h2>Download Amplitron</h2>
+            
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="platform-icon">🪟</div>
+                    <h3>Windows</h3>
+                    <p class="version">Windows 10/11 (64-bit)</p>
+                    <a href="https://github.com/sudip-mondal-2002/Amplitron/releases/latest/download/Amplitron-Windows-x64.zip" class="download-btn">
+                        Download for Windows
+                    </a>
+                    <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-dim);">
+                        Includes all dependencies
+                    </p>
+                </div>
+
+                <div class="download-card">
+                    <div class="platform-icon">🍎</div>
+                    <h3>macOS</h3>
+                    <p class="version">macOS 10.15 Catalina or later</p>
+                    <a href="https://github.com/sudip-mondal-2002/Amplitron/releases/latest/download/Amplitron-macOS-Universal.tar.gz" class="download-btn">
+                        Download for macOS
+                    </a>
+                    <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-dim);">
+                        Universal binary (Intel + Apple Silicon)
+                    </p>
+                </div>
+
+                <div class="download-card">
+                    <div class="platform-icon">🐧</div>
+                    <h3>Linux</h3>
+                    <p class="version">Ubuntu 20.04+ / Fedora 35+ / Arch</p>
+                    <a href="https://github.com/sudip-mondal-2002/Amplitron/releases/latest/download/Amplitron-Linux-x64.tar.gz" class="download-btn">
+                        Download for Linux
+                    </a>
+                    <p style="margin-top: 15px; font-size: 0.85rem; color: var(--text-dim);">
+                        Requires PortAudio & SDL2
+                    </p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="https://github.com/sudip-mondal-2002/Amplitron/releases" 
+                   style="color: var(--gold); text-decoration: none; font-size: 1.1rem;">
+                    View all releases →
+                </a>
+            </div>
+        </div>
+
+        <div class="requirements">
+            <h3>System Requirements</h3>
+            <ul>
+                <li><strong>Audio Interface:</strong> Any PortAudio-compatible device (ASIO, WASAPI, CoreAudio, ALSA)</li>
+                <li><strong>RAM:</strong> 512 MB minimum, 1 GB recommended</li>
+                <li><strong>CPU:</strong> Dual-core processor or better</li>
+                <li><strong>Display:</strong> 1280×720 minimum resolution</li>
+                <li><strong>Input:</strong> Guitar with 1/4" cable and audio interface, or USB guitar cable</li>
+            </ul>
+        </div>
+
+        <div class="installation">
+            <h2>Installation Instructions</h2>
+
+            <div class="install-steps">
+                <h4>Windows</h4>
+                <ol>
+                    <li>Download <code>Amplitron-Windows-x64.zip</code></li>
+                    <li>Extract the ZIP file to your desired location</li>
+                    <li>Run <code>Amplitron.exe</code></li>
+                    <li>Connect your guitar interface and start playing!</li>
+                </ol>
+            </div>
+
+            <div class="install-steps">
+                <h4>macOS</h4>
+                <ol>
+                    <li>Download <code>Amplitron-macOS-Universal.tar.gz</code></li>
+                    <li>Extract the archive (double-click or use <code>tar -xzf</code>)</li>
+                    <li>Drag <code>Amplitron.app</code> to your Applications folder</li>
+                    <li>Right-click and select "Open" (first time only, to bypass Gatekeeper)</li>
+                    <li>Grant microphone permissions when prompted</li>
+                </ol>
+            </div>
+
+            <div class="install-steps">
+                <h4>Linux</h4>
+                <ol>
+                    <li>Install dependencies:
+                        <br><code>sudo apt install portaudio19-dev libsdl2-2.0-0</code> (Ubuntu/Debian)
+                        <br><code>sudo dnf install portaudio SDL2</code> (Fedora)
+                    </li>
+                    <li>Download <code>Amplitron-Linux-x64.tar.gz</code></li>
+                    <li>Extract: <code>tar -xzf Amplitron-Linux-x64.tar.gz</code></li>
+                    <li>Run: <code>cd Amplitron-Linux && ./amplitron.sh</code></li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="hero">
+            <h2>Open Source & Free</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8; color: var(--text-dim); margin-bottom: 20px;">
+                Amplitron is completely free and open source. Contributions, bug reports, and feature 
+                requests are welcome on GitHub. Built with C++17, PortAudio, SDL2, and Dear ImGui.
+            </p>
+            <a href="https://github.com/sudip-mondal-2002/Amplitron" 
+               style="display: inline-block; background: var(--brown-dark); color: var(--gold); 
+                      padding: 12px 30px; border-radius: 8px; text-decoration: none; 
+                      font-weight: 600; border: 2px solid var(--gold);">
+                View on GitHub →
+            </a>
+        </div>
+
+        <footer>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                <strong>Amplitron</strong> - Professional Guitar Amp Simulator
+            </p>
+            <p>
+                Developed by <a href="https://github.com/sudip-mondal-2002">Sudip Mondal</a>
+            </p>
+            <p>
+                Contact: <a href="mailto:sudmondal2002@gmail.com">sudmondal2002@gmail.com</a>
+            </p>
+            <p style="margin-top: 20px; font-size: 0.9rem;">
+                &copy; 2026 Amplitron. Released under the MIT License.
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

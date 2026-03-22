@@ -1,4 +1,13 @@
-# Guitar Amp Simulator
+# Amplitron - Guitar Amp Simulator
+
+[![CI Build](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml)
+[![Release](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/sudip-mondal-2002/Amplitron/releases)
+
+A professional real-time, low-latency guitar amplifier simulator with a visual pedal board interface. Built in C++ using PortAudio for audio I/O and Dear ImGui (SDL2 + OpenGL) for the GUI.
+
+**[Download Latest Release](https://github.com/sudip-mondal-2002/Amplitron/releases/latest)** | **[Visit Website](https://sudip-mondal-2002.github.io/Amplitron/)**
 
 A real-time, low-latency guitar amplifier simulator with a visual pedal board interface. Built in C++ using PortAudio for audio I/O and Dear ImGui (SDL2 + OpenGL) for the GUI.
 
@@ -324,6 +333,74 @@ Effects use `try_lock` on the mutex to avoid blocking the audio thread if the GU
 - Make sure all dependencies are installed (run the setup script)
 - On Windows with vcpkg, ensure `VCPKG_ROOT` is set and you pass the toolchain file to CMake
 - Dear ImGui must be present in `external/imgui/` — run the setup script if missing
+
+---
+
+## Development & Contributing
+
+### Building from Source
+
+See the platform-specific build instructions above. The project uses CMake and requires:
+- C++17 compiler
+- PortAudio
+- SDL2
+- OpenGL
+
+### Running Tests
+
+```bash
+cd build
+./amplitron-tests        # Linux/macOS
+./amplitron-tests.exe    # Windows
+```
+
+The test suite includes 64+ tests covering:
+- Core utility functions
+- All 9 audio effects
+- Preset save/load/roundtrip
+- WAV recording
+- Theme and color system
+
+### CI/CD Pipeline
+
+Amplitron uses GitHub Actions for continuous integration and deployment:
+
+- **CI Workflow** (`.github/workflows/ci.yml`): Runs on every push/PR
+  - Builds on Windows, macOS, and Linux
+  - Runs full test suite on all platforms
+  - Uploads test artifacts
+
+- **Release Workflow** (`.github/workflows/release.yml`): Triggered on version tags
+  - Creates GitHub release
+  - Builds platform-specific packages (Windows ZIP, macOS .app, Linux tarball)
+  - Uploads release assets
+  - Deploys download page to GitHub Pages
+
+### Creating a Release
+
+1. Tag a new version: `git tag v1.0.0`
+2. Push the tag: `git push origin v1.0.0`
+3. GitHub Actions will automatically:
+   - Build for all platforms
+   - Run tests
+   - Create release with binaries
+   - Deploy website
+
+### Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Submit a pull request
+
+For bugs and feature requests, open an issue on GitHub.
+
+### Contact
+
+- **Developer**: Sudip Mondal
+- **Email**: sudmondal2002@gmail.com
+- **GitHub**: [@sudip-mondal-2002](https://github.com/sudip-mondal-2002)
 
 ---
 

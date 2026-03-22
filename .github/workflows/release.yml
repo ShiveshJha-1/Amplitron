@@ -1,0 +1,294 @@
+name: CD - Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: Amplitron ${{ steps.get_version.outputs.version }}
+        body: |
+          ## Amplitron Guitar Amp Simulator
+          
+          ### What's New
+          - Professional guitar amp simulation
+          - Real-time audio processing with ultra-low latency
+          - 9 studio-quality effects pedals
+          - Preset management system
+          - Multi-track recording with metadata
+          
+          ### Downloads
+          Choose the version for your operating system below.
+          
+          ### System Requirements
+          - **Windows**: Windows 10/11 (64-bit)
+          - **macOS**: macOS 10.15 Catalina or later
+          - **Linux**: Ubuntu 20.04+ / Fedora 35+ / Arch Linux
+          
+          ### Installation
+          See the [download page](https://sudip-mondal-2002.github.io/Amplitron/) for detailed installation instructions.
+          
+          ---
+          **Contact**: sudmondal2002@gmail.com
+        draft: false
+        prerelease: false
+
+  build-windows:
+    name: Build Windows
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-portaudio
+          mingw-w64-x86_64-SDL2
+          make
+
+    - name: Setup ImGui
+      shell: msys2 {0}
+      run: |
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui
+
+    - name: Build
+      shell: msys2 {0}
+      run: |
+        mkdir -p build
+        cd build
+        cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+        mingw32-make -j8
+
+    - name: Package
+      shell: msys2 {0}
+      run: |
+        mkdir -p release/Amplitron-Windows
+        cp build/guitar-amp.exe release/Amplitron-Windows/Amplitron.exe
+        cp README.md release/Amplitron-Windows/
+        cp -r assets release/Amplitron-Windows/ || true
+        cp -r presets release/Amplitron-Windows/ || true
+        
+        # Copy MinGW DLLs
+        cp /mingw64/bin/libgcc_s_seh-1.dll release/Amplitron-Windows/
+        cp /mingw64/bin/libstdc++-6.dll release/Amplitron-Windows/
+        cp /mingw64/bin/libwinpthread-1.dll release/Amplitron-Windows/
+        cp /mingw64/bin/libportaudio-2.dll release/Amplitron-Windows/
+        cp /mingw64/bin/SDL2.dll release/Amplitron-Windows/
+        
+        cd release
+        7z a -tzip Amplitron-Windows-x64.zip Amplitron-Windows
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./release/Amplitron-Windows-x64.zip
+        asset_name: Amplitron-Windows-x64.zip
+        asset_content_type: application/zip
+
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        brew install portaudio sdl2 cmake
+
+    - name: Setup ImGui
+      run: |
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui
+
+    - name: Build
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        make -j$(sysctl -n hw.ncpu)
+
+    - name: Create App Bundle
+      run: |
+        mkdir -p release/Amplitron.app/Contents/MacOS
+        mkdir -p release/Amplitron.app/Contents/Resources
+        
+        cp build/guitar-amp release/Amplitron.app/Contents/MacOS/Amplitron
+        cp -r assets release/Amplitron.app/Contents/Resources/ || true
+        cp -r presets release/Amplitron.app/Contents/Resources/ || true
+        
+        # Create Info.plist
+        cat > release/Amplitron.app/Contents/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>Amplitron</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.amplitron.app</string>
+            <key>CFBundleName</key>
+            <string>Amplitron</string>
+            <key>CFBundleVersion</key>
+            <string>${{ needs.create-release.outputs.version }}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${{ needs.create-release.outputs.version }}</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>NSMicrophoneUsageDescription</key>
+            <string>Amplitron needs microphone access for guitar input.</string>
+        </dict>
+        </plist>
+        EOF
+        
+        cd release
+        tar -czf Amplitron-macOS-Universal.tar.gz Amplitron.app
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./release/Amplitron-macOS-Universal.tar.gz
+        asset_name: Amplitron-macOS-Universal.tar.gz
+        asset_content_type: application/gzip
+
+  build-linux:
+    name: Build Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Ubuntu
+            container: ubuntu:22.04
+            package_format: deb
+          - name: Fedora
+            container: fedora:38
+            package_format: rpm
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies (Ubuntu)
+      if: matrix.name == 'Ubuntu'
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          cmake \
+          libportaudio2 \
+          portaudio19-dev \
+          libsdl2-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          git
+
+    - name: Install Dependencies (Fedora)
+      if: matrix.name == 'Fedora'
+      run: |
+        dnf install -y \
+          gcc-c++ \
+          cmake \
+          portaudio-devel \
+          SDL2-devel \
+          mesa-libGL-devel \
+          mesa-libGLU-devel \
+          git
+
+    - name: Setup ImGui
+      run: |
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui
+
+    - name: Build
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
+        make -j$(nproc)
+
+    - name: Package (Generic Linux)
+      if: matrix.name == 'Ubuntu'
+      run: |
+        mkdir -p release/Amplitron-Linux
+        cp build/guitar-amp release/Amplitron-Linux/amplitron
+        cp README.md release/Amplitron-Linux/
+        cp -r assets release/Amplitron-Linux/ || true
+        cp -r presets release/Amplitron-Linux/ || true
+        
+        # Create launcher script
+        cat > release/Amplitron-Linux/amplitron.sh << 'EOF'
+        #!/bin/bash
+        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        cd "$SCRIPT_DIR"
+        ./amplitron
+        EOF
+        chmod +x release/Amplitron-Linux/amplitron.sh
+        chmod +x release/Amplitron-Linux/amplitron
+        
+        cd release
+        tar -czf Amplitron-Linux-x64.tar.gz Amplitron-Linux
+
+    - name: Upload Release Asset (Linux)
+      if: matrix.name == 'Ubuntu'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./release/Amplitron-Linux-x64.tar.gz
+        asset_name: Amplitron-Linux-x64.tar.gz
+        asset_content_type: application/gzip
+
+  deploy-website:
+    name: Deploy Download Page
+    needs: [create-release, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        publish_branch: gh-pages
