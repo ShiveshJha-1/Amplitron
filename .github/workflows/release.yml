@@ -81,7 +81,7 @@ jobs:
 
     - name: Build Installer
       run: |
-        makensis -DSRCDIR=staging -DOUTFILE=Amplitron-Windows-Setup.exe scripts/installer.nsi
+        makensis "-DSRCDIR=$(pwd)/staging" "-DOUTFILE=$(pwd)/Amplitron-Windows-Setup.exe" scripts/installer.nsi
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
