@@ -2,9 +2,9 @@ name: CI - Build and Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   test-linux:
@@ -33,6 +33,14 @@ jobs:
     - name: Run Tests
       run: cd build && ./amplitron-tests
 
+    - name: Upload Build
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-build
+        path: build/guitar-amp
+        retention-days: 1
+
   test-macos:
     name: Test on macOS
     runs-on: macos-latest
@@ -40,8 +48,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install Dependencies
-      run: |
-        brew install portaudio sdl2
+      run: brew install portaudio sdl2
 
     - name: Setup ImGui
       run: git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui
@@ -60,6 +67,14 @@ jobs:
 
     - name: Run Tests
       run: cd build && ./amplitron-tests
+
+    - name: Upload Build
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-build
+        path: build/guitar-amp
+        retention-days: 1
 
   test-windows:
     name: Test on Windows
@@ -94,3 +109,23 @@ jobs:
     - name: Run Tests
       shell: msys2 {0}
       run: cd build && ./amplitron-tests.exe
+
+    - name: Collect Binaries
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      shell: msys2 {0}
+      run: |
+        mkdir -p staging
+        cp build/guitar-amp.exe staging/
+        for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll SDL2.dll; do
+          cp /mingw64/bin/$dll staging/ 2>/dev/null || true
+        done
+        cp /mingw64/bin/libportaudio*.dll staging/ 2>/dev/null || true
+        ls -la staging/
+
+    - name: Upload Build
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-build
+        path: staging/
+        retention-days: 1
