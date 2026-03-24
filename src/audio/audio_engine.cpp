@@ -123,13 +123,37 @@ void AudioEngine::process_audio(const float* input, float* output, int frame_cou
     // Drain lock-free command queue (GUI -> Audio)
     drain_commands();
 
+    // Single branch: read once per callback, not per sample.
+    const bool analyzer_on = analyzer_enabled_.load(std::memory_order_relaxed);
+
     // Copy input to processing buffer with gain
     float in_gain = input_gain_.load(std::memory_order_relaxed);
     float peak_in = 0.0f;
-    for (int i = 0; i < frame_count; ++i) {
-        process_buffer_[i] = input[i] * in_gain;
-        float abs_val = std::fabs(process_buffer_[i]);
-        if (abs_val > peak_in) peak_in = abs_val;
+    if (analyzer_on) {
+        // --- Analyzer-active path: also computes RMS, clipping, and ring-buffer capture ---
+        float sum_sq_in = 0.0f;
+        bool clipped_in = false;
+        int cap = analyzer_capture_index_;
+        for (int i = 0; i < frame_count; ++i) {
+            process_buffer_[i] = input[i] * in_gain;
+            float abs_val = std::fabs(process_buffer_[i]);
+            if (abs_val > peak_in) peak_in = abs_val;
+            if (abs_val >= 1.0f) clipped_in = true;
+            sum_sq_in += process_buffer_[i] * process_buffer_[i];
+            analyzer_capture_input_[cap] = process_buffer_[i];
+            cap = (cap + 1) & ANALYZER_FFT_MASK;
+        }
+        input_rms_.store(std::sqrt(sum_sq_in / std::max(frame_count, 1)), std::memory_order_relaxed);
+        if (clipped_in) input_clipped_.store(true, std::memory_order_release);
+        // cap is carried forward for the output loop below
+        analyzer_capture_index_ = cap;
+    } else {
+        // --- Original zero-overhead path: peak metering only ---
+        for (int i = 0; i < frame_count; ++i) {
+            process_buffer_[i] = input[i] * in_gain;
+            float abs_val = std::fabs(process_buffer_[i]);
+            if (abs_val > peak_in) peak_in = abs_val;
+        }
     }
     input_level_.store(peak_in);
 
@@ -148,11 +172,56 @@ void AudioEngine::process_audio(const float* input, float* output, int frame_cou
     // Copy to output with gain
     float out_gain = output_gain_.load(std::memory_order_relaxed);
     float peak_out = 0.0f;
-    for (int i = 0; i < frame_count; ++i) {
-        output[i] = process_buffer_[i] * out_gain;
-        output[i] = clamp(output[i], -1.0f, 1.0f);
-        float abs_val = std::fabs(output[i]);
-        if (abs_val > peak_out) peak_out = abs_val;
+    if (analyzer_on) {
+        // --- Analyzer-active path ---
+        float sum_sq_out = 0.0f;
+        bool clipped_out = false;
+        int cap = (analyzer_capture_index_ - frame_count) & ANALYZER_FFT_MASK;
+        for (int i = 0; i < frame_count; ++i) {
+            float out_sample = process_buffer_[i] * out_gain;
+            if (std::fabs(out_sample) >= 1.0f) clipped_out = true;
+            output[i] = clamp(out_sample, -1.0f, 1.0f);
+            float abs_val = std::fabs(output[i]);
+            if (abs_val > peak_out) peak_out = abs_val;
+            sum_sq_out += output[i] * output[i];
+            analyzer_capture_output_[cap] = output[i];
+            cap = (cap + 1) & ANALYZER_FFT_MASK;
+        }
+        output_rms_.store(std::sqrt(sum_sq_out / std::max(frame_count, 1)), std::memory_order_relaxed);
+        if (clipped_out) output_clipped_.store(true, std::memory_order_release);
+
+        // Publish snapshot at hop cadence (non-blocking)
+        analyzer_samples_since_publish_ += frame_count;
+        if (analyzer_samples_since_publish_ >= ANALYZER_HOP_SIZE) {
+            if (analyzer_mutex_.try_lock()) {
+                // Reorder ring buffer into contiguous time-domain snapshot
+                const int start = analyzer_capture_index_;
+                const int first_chunk = ANALYZER_FFT_SIZE - start;
+                std::memcpy(analyzer_snapshot_input_.data(),
+                            analyzer_capture_input_.data() + start,
+                            static_cast<size_t>(first_chunk) * sizeof(float));
+                std::memcpy(analyzer_snapshot_input_.data() + first_chunk,
+                            analyzer_capture_input_.data(),
+                            static_cast<size_t>(start) * sizeof(float));
+                std::memcpy(analyzer_snapshot_output_.data(),
+                            analyzer_capture_output_.data() + start,
+                            static_cast<size_t>(first_chunk) * sizeof(float));
+                std::memcpy(analyzer_snapshot_output_.data() + first_chunk,
+                            analyzer_capture_output_.data(),
+                            static_cast<size_t>(start) * sizeof(float));
+                analyzer_sequence_.fetch_add(1, std::memory_order_release);
+                analyzer_samples_since_publish_ = 0;
+                analyzer_mutex_.unlock();
+            }
+        }
+    } else {
+        // --- Original zero-overhead path ---
+        for (int i = 0; i < frame_count; ++i) {
+            output[i] = process_buffer_[i] * out_gain;
+            output[i] = clamp(output[i], -1.0f, 1.0f);
+            float abs_val = std::fabs(output[i]);
+            if (abs_val > peak_out) peak_out = abs_val;
+        }
     }
     output_level_.store(peak_out);
 
@@ -277,6 +346,25 @@ int AudioEngine::get_suggested_buffer_size() const {
         }
     }
     return current;  // no change
+}
+
+bool AudioEngine::copy_analyzer_snapshot(float* input_dest,
+                                         float* output_dest,
+                                         int sample_count) const {
+    if (!input_dest || !output_dest || sample_count <= 0) {
+        return false;
+    }
+
+    const int count = std::min(sample_count, ANALYZER_FFT_SIZE);
+    std::lock_guard<std::mutex> lock(analyzer_mutex_);
+    const uint64_t seq = analyzer_sequence_.load(std::memory_order_relaxed);
+    if (seq == 0) {
+        return false;
+    }
+
+    std::memcpy(input_dest, analyzer_snapshot_input_.data(), static_cast<size_t>(count) * sizeof(float));
+    std::memcpy(output_dest, analyzer_snapshot_output_.data(), static_cast<size_t>(count) * sizeof(float));
+    return true;
 }
 
 } // namespace GuitarAmp

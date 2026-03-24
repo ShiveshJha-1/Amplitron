@@ -147,6 +147,42 @@ public:
     /** @brief Return the most recent output peak level (0.0–1.0, atomic). */
     float get_output_level() const { return output_level_.load(); }
 
+    /** @brief Return the most recent input RMS level (0.0–1.0, atomic). */
+    float get_input_rms() const { return input_rms_.load(std::memory_order_relaxed); }
+
+    /** @brief Return the most recent output RMS level (0.0–1.0, atomic). */
+    float get_output_rms() const { return output_rms_.load(std::memory_order_relaxed); }
+
+    /** @brief Consume one-shot input clipping flag set by audio thread. */
+    bool consume_input_clipped() { return input_clipped_.exchange(false, std::memory_order_acq_rel); }
+
+    /** @brief Consume one-shot output clipping flag set by audio thread. */
+    bool consume_output_clipped() { return output_clipped_.exchange(false, std::memory_order_acq_rel); }
+
+    /** @brief FFT size used for GUI analyzer snapshots. */
+    static constexpr int ANALYZER_FFT_SIZE = 2048;
+    static constexpr int ANALYZER_FFT_MASK = ANALYZER_FFT_SIZE - 1;
+
+    /** @brief Enable/disable analyzer capture in the audio callback (GUI thread). */
+    void set_analyzer_enabled(bool enabled) { analyzer_enabled_.store(enabled, std::memory_order_release); }
+
+    /** @brief Return true if analyzer capture is active. */
+    bool is_analyzer_enabled() const { return analyzer_enabled_.load(std::memory_order_acquire); }
+
+    /** @brief Snapshot sequence counter; increments when new analyzer data is published. */
+    uint64_t get_analyzer_sequence() const {
+        return analyzer_sequence_.load(std::memory_order_acquire);
+    }
+
+    /**
+     * @brief Copy latest pre/post-chain analyzer snapshots (GUI thread).
+     * @param input_dest  Destination buffer for pre-chain samples.
+     * @param output_dest Destination buffer for post-chain samples.
+     * @param sample_count Number of samples to copy (clamped to ANALYZER_FFT_SIZE).
+     * @return true if at least one snapshot has been published.
+     */
+    bool copy_analyzer_snapshot(float* input_dest, float* output_dest, int sample_count) const;
+
     /**
      * @brief Set the master input gain (enqueued to audio thread via SPSC queue).
      * @param gain Linear gain multiplier.
@@ -227,6 +263,11 @@ private:
 
     std::atomic<float> input_level_{0.0f};
     std::atomic<float> output_level_{0.0f};
+    std::atomic<float> input_rms_{0.0f};
+    std::atomic<float> output_rms_{0.0f};
+    std::atomic<bool> input_clipped_{false};
+    std::atomic<bool> output_clipped_{false};
+    std::atomic<bool> analyzer_enabled_{false};
 
     std::vector<std::shared_ptr<Effect>> effects_;
     std::vector<float> process_buffer_;
@@ -242,6 +283,19 @@ private:
     std::atomic<float> cpu_load_{0.0f};
     std::atomic<float> callback_duration_us_{0.0f};
     bool auto_buffer_enabled_ = false;
+
+    // Audio-thread capture for GUI analyzer snapshots.
+    static constexpr int ANALYZER_HOP_SIZE = 1024;
+    std::array<float, ANALYZER_FFT_SIZE> analyzer_capture_input_{};
+    std::array<float, ANALYZER_FFT_SIZE> analyzer_capture_output_{};
+    int analyzer_capture_index_ = 0;
+    int analyzer_samples_since_publish_ = 0;
+
+    // Shared snapshot buffers (audio thread writes with try_lock, GUI reads with lock).
+    mutable std::mutex analyzer_mutex_;
+    std::array<float, ANALYZER_FFT_SIZE> analyzer_snapshot_input_{};
+    std::array<float, ANALYZER_FFT_SIZE> analyzer_snapshot_output_{};
+    std::atomic<uint64_t> analyzer_sequence_{0};
 };
 
 } // namespace GuitarAmp

@@ -106,6 +106,7 @@ set(APP_SOURCES
     src/audio/effects/compressor.cpp
     src/audio/effects/cabinet_sim.cpp
     src/gui/gui_manager.cpp
+    src/gui/spectrum_analyzer.cpp
     src/gui/pedal_board.cpp
     src/gui/pedal_widget.cpp
     src/gui/command_history.cpp

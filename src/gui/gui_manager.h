@@ -4,6 +4,7 @@
 #include "audio/audio_engine.h"
 #include "preset_manager.h"
 #include "gui/command_history.h"
+#include "gui/spectrum_analyzer.h"
 
 struct SDL_Window;
 typedef void* SDL_GLContext;
@@ -74,11 +75,24 @@ private:
     /** @brief Render the "Load Preset" popup dialog. */
     void render_load_preset_popup();
 
-    /** @brief Render the recording start/stop controls. */
+    /** @brief Render recording start/stop controls. */
     void render_recording_controls();
 
     /** @brief Render the "Save Recording" file dialog. */
     void render_recording_save_dialog();
+
+    /** @brief Render the collapsible VU + spectrum analyzer panel. */
+    void render_analyzer_panel();
+
+    /** @brief Draw a horizontal VU bar with peak hold and clipping flash. */
+    void render_vu_bar(const char* id,
+                       const char* label,
+                       float rms_level,
+                       float peak_hold,
+                       bool clip_active,
+                       float clip_flash,
+                       ImU32 base_color,
+                       ImU32 peak_color);
 
     void refresh_presets(bool preserve_selection = true);
     bool save_named_preset(const std::string& preset_name,
@@ -114,6 +128,19 @@ private:
     // Smoothed meter values
     float smoothed_input_level_ = 0.0f;
     float smoothed_output_level_ = 0.0f;
+    float smoothed_input_rms_ = 0.0f;
+    float smoothed_output_rms_ = 0.0f;
+    float input_rms_peak_hold_ = 0.0f;
+    float output_rms_peak_hold_ = 0.0f;
+    float input_clip_flash_ = 0.0f;
+    float output_clip_flash_ = 0.0f;
+
+    bool analyzer_panel_expanded_ = true;
+    SpectrumAnalyzer::DisplayMode analyzer_mode_ = SpectrumAnalyzer::DisplayMode::Output;
+    std::unique_ptr<SpectrumAnalyzer> spectrum_analyzer_;
+    std::array<float, AudioEngine::ANALYZER_FFT_SIZE> analyzer_input_buf_{};
+    std::array<float, AudioEngine::ANALYZER_FFT_SIZE> analyzer_output_buf_{};
+    uint64_t analyzer_last_sequence_ = 0;
 
     // Recording UI state
     bool show_recording_save_ = false;
