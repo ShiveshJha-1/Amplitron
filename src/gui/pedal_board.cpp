@@ -12,6 +12,7 @@
 #include "audio/effects/delay.h"
 #include "audio/effects/reverb.h"
 #include "audio/effects/cabinet_sim.h"
+#include "audio/effects/amp_simulator.h"
 
 #include <imgui.h>
 #include <algorithm>
@@ -113,6 +114,22 @@ void PedalBoard::render_add_pedal_menu() {
         if (ImGui::MenuItem("Reverb")) {
             history_.execute(std::make_unique<AddEffectCommand>(engine_, std::make_shared<Reverb>()));
             rebuild_widgets();
+        }
+
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.95f, 0.55f, 0.20f, 1.0f), "AMP MODELS");
+        {
+            const auto& models = get_amp_models();
+            for (int m = 0; m < static_cast<int>(models.size()); ++m) {
+                char label[64];
+                std::snprintf(label, sizeof(label), "Amp Sim: %s", models[m].name);
+                if (ImGui::MenuItem(label)) {
+                    auto amp = std::make_shared<AmpSimulator>();
+                    amp->params()[0].value = static_cast<float>(m);
+                    history_.execute(std::make_unique<AddEffectCommand>(engine_, amp));
+                    rebuild_widgets();
+                }
+            }
         }
 
         ImGui::Separator();

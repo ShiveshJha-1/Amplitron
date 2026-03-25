@@ -8,6 +8,7 @@
 #include "audio/effects/delay.h"
 #include "audio/effects/reverb.h"
 #include "audio/effects/cabinet_sim.h"
+#include "audio/effects/amp_simulator.h"
 
 #include <iostream>
 #include <ctime>
@@ -75,6 +76,7 @@ std::shared_ptr<Effect> PresetManager::create_effect(const std::string& type) {
     if (type == "Delay")       return std::make_shared<Delay>();
     if (type == "Reverb")      return std::make_shared<Reverb>();
     if (type == "Cabinet")     return std::make_shared<CabinetSim>();
+    if (type == "Amp Sim")     return std::make_shared<AmpSimulator>();
     return nullptr;
 }
 

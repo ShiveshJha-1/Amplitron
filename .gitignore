@@ -4,6 +4,8 @@ build-*/
 out/
 cmake-build-*/
 presets/
+recordings/
+
 # IDE
 .vs/
 .vscode/
@@ -22,7 +24,8 @@ Thumbs.db
 desktop.ini
 
 # Dependencies (fetched by setup script)
-external/imgui/
+external/
+
 
 # Compiled
 *.o

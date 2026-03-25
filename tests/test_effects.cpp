@@ -8,6 +8,7 @@
 #include "audio/effects/delay.h"
 #include "audio/effects/reverb.h"
 #include "audio/effects/cabinet_sim.h"
+#include "audio/effects/amp_simulator.h"
 #include <cstring>
 #include <cmath>
 
@@ -80,6 +81,9 @@ TEST(effect_has_name) {
     ASSERT_TRUE(std::strcmp(dl.name(), "Delay") == 0);
     ASSERT_TRUE(std::strcmp(rv.name(), "Reverb") == 0);
     ASSERT_TRUE(std::strcmp(cab.name(), "Cabinet") == 0);
+
+    AmpSimulator amp;
+    ASSERT_TRUE(std::strcmp(amp.name(), "Amp Sim") == 0);
 }
 
 TEST(effect_has_params) {
@@ -288,6 +292,78 @@ TEST(cabinet_sim_filters_signal) {
     ASSERT_GT(rms(buf, 512), 0.001f);
 }
 
+TEST(amp_simulator_processes_without_nan) {
+    AmpSimulator amp;
+    amp.set_sample_rate(48000);
+    amp.reset();
+
+    float buf[512];
+    fill_sine(buf, 512, 440.0f, 48000);
+    amp.process(buf, 512);
+
+    ASSERT_TRUE(buffer_is_finite(buf, 512));
+    ASSERT_GT(rms(buf, 512), 0.001f);
+}
+
+TEST(amp_simulator_models_sound_different) {
+    const auto& models = GuitarAmp::get_amp_models();
+    ASSERT_GE((int)models.size(), 3);
+
+    std::vector<float> model_rms;
+    for (int m = 0; m < static_cast<int>(models.size()); ++m) {
+        AmpSimulator amp;
+        amp.set_sample_rate(48000);
+        amp.reset();
+        amp.params()[0].value = static_cast<float>(m);
+
+        float buf[1024];
+        fill_sine(buf, 1024, 440.0f, 48000);
+        amp.process(buf, 1024);
+        ASSERT_TRUE(buffer_is_finite(buf, 1024));
+        model_rms.push_back(rms(buf, 1024));
+    }
+
+    // At least one pair of models should produce meaningfully different RMS
+    bool found_diff = false;
+    for (size_t i = 0; i < model_rms.size() && !found_diff; ++i) {
+        for (size_t j = i + 1; j < model_rms.size(); ++j) {
+            if (std::fabs(model_rms[i] - model_rms[j]) > 0.01f) {
+                found_diff = true;
+                break;
+            }
+        }
+    }
+    ASSERT_TRUE(found_diff);
+}
+
+TEST(amp_simulator_output_clamped) {
+    AmpSimulator amp;
+    amp.set_sample_rate(48000);
+    amp.reset();
+    // High gain model
+    amp.params()[0].value = 2.0f; // High Gain Modern
+    amp.params()[1].value = 1.0f; // Max gain knob
+
+    float buf[512];
+    fill_sine(buf, 512, 440.0f, 48000);
+    amp.process(buf, 512);
+
+    for (int i = 0; i < 512; ++i) {
+        ASSERT_GE(buf[i], -1.0f);
+        ASSERT_TRUE(buf[i] <= 1.0f);
+    }
+}
+
+TEST(amp_simulator_get_models_returns_at_least_three) {
+    const auto& models = GuitarAmp::get_amp_models();
+    ASSERT_GE((int)models.size(), 3);
+    for (const auto& m : models) {
+        ASSERT_TRUE(m.name != nullptr);
+        ASSERT_TRUE(m.inspiration != nullptr);
+        ASSERT_TRUE(m.description != nullptr);
+    }
+}
+
 TEST(all_effects_handle_silence) {
     std::vector<std::shared_ptr<Effect>> effects = {
         std::make_shared<NoiseGate>(),
@@ -299,6 +375,7 @@ TEST(all_effects_handle_silence) {
         std::make_shared<Delay>(),
         std::make_shared<Reverb>(),
         std::make_shared<CabinetSim>(),
+        std::make_shared<AmpSimulator>(),
     };
 
     float buf[256];
@@ -322,6 +399,7 @@ TEST(all_effects_reset_without_crash) {
         std::make_shared<Delay>(),
         std::make_shared<Reverb>(),
         std::make_shared<CabinetSim>(),
+        std::make_shared<AmpSimulator>(),
     };
 
     for (auto& fx : effects) {
@@ -351,6 +429,7 @@ TEST(all_effects_handle_different_sample_rates) {
         std::make_shared<Delay>(),
         std::make_shared<Reverb>(),
         std::make_shared<CabinetSim>(),
+        std::make_shared<AmpSimulator>(),
     };
 
     float buf[256];
