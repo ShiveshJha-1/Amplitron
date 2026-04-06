@@ -10,13 +10,13 @@
 #include <fstream>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 
 using namespace Amplitron;
 
-// Helper: check if file exists
+// Helper: check if file or directory exists
 static bool file_exists(const std::string& path) {
-    std::ifstream f(path);
-    return f.good();
+    return std::filesystem::exists(path);
 }
 
 // Helper: read entire file to string
