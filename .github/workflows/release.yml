@@ -43,6 +43,8 @@ jobs:
           | **Windows** 10/11 (64-bit) | `Amplitron-Windows-Setup.exe` | Installer |
           | **macOS** 10.15+ | `Amplitron-macOS.dmg` | Disk Image |
           | **Linux** x64 | `Amplitron-Linux-x64.tar.gz` | Archive |
+          | **Android** 8.0+ (arm64 / x86_64) | `Amplitron-Android.apk` | APK (sideload) |
+          | **iOS** 15.0+ | `Amplitron-iOS.ipa` | Install via [AltStore](https://altstore.io) |
 
           ### Installation
 
@@ -271,9 +273,64 @@ jobs:
         tag_name: v${{ needs.create-release.outputs.version }}
         files: Amplitron-Linux-x64.tar.gz
 
+  package-android:
+    name: Package Android APK
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download Android Build
+      uses: actions/download-artifact@v8
+      with:
+        name: android-build
+        path: artifacts/android
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Rename APK
+      run: |
+        APK=$(find artifacts/android -name "*.apk" | head -1)
+        if [ -z "$APK" ]; then
+          echo "Error: No APK found in artifacts/android"
+          exit 1
+        fi
+        cp "$APK" Amplitron-Android.apk
+        ls -lh Amplitron-Android.apk
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: Amplitron-Android.apk
+
+  package-ios:
+    name: Package iOS IPA
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download iOS Build
+      uses: actions/download-artifact@v8
+      with:
+        name: ios-build
+        path: artifacts/ios
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Rename IPA
+      run: |
+        cp artifacts/ios/Amplitron.ipa Amplitron-iOS.ipa
+        ls -lh Amplitron-iOS.ipa
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ needs.create-release.outputs.version }}
+        files: Amplitron-iOS.ipa
+
   deploy-website:
     name: Deploy Download Page + Web Demo
-    needs: [create-release, package-windows, package-macos, package-linux]
+    needs: [create-release, package-windows, package-macos, package-linux, package-android, package-ios]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6

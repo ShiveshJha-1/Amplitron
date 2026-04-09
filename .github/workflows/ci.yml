@@ -32,7 +32,8 @@ jobs:
         sudo apt-get install -y --no-install-recommends \
           build-essential cmake \
           libportaudio2 portaudio19-dev \
-          libsdl2-dev libgl1-mesa-dev libglu1-mesa-dev
+          libsdl2-dev libgl1-mesa-dev libglu1-mesa-dev \
+          librtmidi-dev
         mkdir -p ~/apt-cache
         cp /var/cache/apt/archives/*.deb ~/apt-cache/ 2>/dev/null || true
 
@@ -41,6 +42,12 @@ jobs:
         git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
         curl -sL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
         curl -sL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -sL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -sL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -sL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -sL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -sL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
         wait
 
     - name: Generate Version
@@ -75,13 +82,19 @@ jobs:
         fetch-depth: 0
 
     - name: Install Dependencies
-      run: brew install portaudio sdl2
+      run: brew install portaudio sdl2 rtmidi
 
     - name: Setup External Dependencies
       run: |
         git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
         curl -sL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
         curl -sL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -sL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -sL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -sL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -sL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -sL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
         wait
 
     - name: Generate Version
@@ -100,6 +113,8 @@ jobs:
           -DPORTAUDIO_LIBRARIES="$HOMEBREW_PREFIX/lib/libportaudio.dylib" \
           -DSDL2_INCLUDE_DIRS="$HOMEBREW_PREFIX/include/SDL2" \
           -DSDL2_LIBRARIES="$HOMEBREW_PREFIX/lib/libSDL2.dylib" \
+          -DRTMIDI_INCLUDE_DIRS="$HOMEBREW_PREFIX/include" \
+          -DRTMIDI_LIBRARIES="$HOMEBREW_PREFIX/lib/librtmidi.dylib" \
           ..
         make -j$(sysctl -n hw.ncpu)
 
@@ -221,6 +236,12 @@ jobs:
         git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
         curl -sL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
         curl -sL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -sL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -sL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -sL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -sL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -sL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
         wait
 
     - name: Generate Version
@@ -307,6 +328,7 @@ jobs:
           ccache:p
           portaudio:p
           SDL2:p
+          rtmidi:p
         install: git
         cache: true
 
@@ -324,6 +346,12 @@ jobs:
         git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
         curl -sL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
         curl -sL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -sL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -sL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -sL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -sL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -sL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
         wait
 
     - name: Generate Version
@@ -361,6 +389,7 @@ jobs:
           cp /mingw64/bin/$dll staging/ 2>/dev/null || true
         done
         cp /mingw64/bin/libportaudio*.dll staging/ 2>/dev/null || true
+        cp /mingw64/bin/librtmidi*.dll staging/ 2>/dev/null || true
         ls -la staging/
 
     - name: Upload Build
@@ -369,4 +398,222 @@ jobs:
       with:
         name: windows-build
         path: staging/
+        retention-days: 1
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Install Android NDK r27
+      run: |
+        echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          "ndk;27.1.12297006" \
+          "cmake;3.22.1"
+
+    - name: Setup External Dependencies
+      run: |
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
+        curl -fsSL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
+        curl -fsSL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -fsSL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -fsSL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -fsSL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -fsSL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -fsSL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
+        wait
+
+    - name: Fetch SDL2 Java bridge
+      run: |
+        git clone --depth 1 --branch release-2.30.12 \
+          https://github.com/libsdl-org/SDL.git sdl2-src
+        mkdir -p android/app/src/main/java/org/libsdl/app
+        cp sdl2-src/android-project/app/src/main/java/org/libsdl/app/*.java \
+           android/app/src/main/java/org/libsdl/app/
+
+    - name: Generate Version
+      id: version
+      run: |
+        COUNT=$(git rev-list --count HEAD)
+        echo "version=0.1.${COUNT}" >> $GITHUB_OUTPUT
+
+    - name: Build APK
+      working-directory: android
+      run: |
+        ./gradlew assembleRelease \
+          -PamplitronVersion=${{ steps.version.outputs.version }} \
+          --no-daemon
+
+    - name: Validate APK
+      run: |
+        APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+        echo "APK: $APK  ($(du -sh "$APK" | cut -f1))"
+
+        # Dump manifest metadata — catches missing permissions, bad package name, etc.
+        $ANDROID_HOME/build-tools/34.0.0/aapt2 dump badging "$APK" \
+          | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|native-code)"
+
+        # Confirm libmain.so is present and is a valid ARM64 ELF shared library
+        unzip -p "$APK" lib/arm64-v8a/libmain.so | file - \
+          | grep -i "ELF.*aarch64" \
+          || { echo "ARM64 libmain.so not found or invalid"; exit 1; }
+
+        echo "APK validation passed."
+
+    - name: Upload APK
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v7
+      with:
+        name: android-build
+        path: android/app/build/outputs/apk/release/
+        retention-days: 1
+
+  build-ios:
+    name: Build iOS App (Device)
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Setup External Dependencies
+      run: |
+        git clone --depth 1 --branch v1.90.1 https://github.com/ocornut/imgui.git external/imgui &
+        curl -fsSL -o external/nanosvg.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvg.h &
+        curl -fsSL -o external/nanosvgrast.h https://raw.githubusercontent.com/memononen/nanosvg/master/src/nanosvgrast.h &
+        curl -fsSL -o external/dr_wav.h https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h &
+        mkdir -p external/kiss_fft
+        curl -fsSL -o external/kiss_fft/kiss_fft.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.h &
+        curl -fsSL -o external/kiss_fft/kiss_fft.c https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft.c &
+        curl -fsSL -o external/kiss_fft/_kiss_fft_guts.h https://raw.githubusercontent.com/mborgerding/kissfft/master/_kiss_fft_guts.h &
+        curl -fsSL -o external/kiss_fft/kiss_fft_log.h https://raw.githubusercontent.com/mborgerding/kissfft/master/kiss_fft_log.h &
+        wait
+
+    - name: Generate Version
+      id: version
+      run: |
+        COUNT=$(git rev-list --count HEAD)
+        echo "version=0.1.${COUNT}" >> $GITHUB_OUTPUT
+
+    - name: Cache SDL2 iOS static library
+      id: sdl2-ios-cache
+      uses: actions/cache@v5
+      with:
+        path: ~/sdl2-ios
+        key: sdl2-ios-arm64-2.30.12
+
+    - name: Build SDL2 for iOS
+      if: steps.sdl2-ios-cache.outputs.cache-hit != 'true'
+      run: |
+        curl -sL https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.30.12.tar.gz | tar xz
+        cmake -S SDL-release-2.30.12 -B sdl2-build \
+          -G "Unix Makefiles" \
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+          -DCMAKE_OSX_ARCHITECTURES=arm64 \
+          -DCMAKE_INSTALL_PREFIX=$HOME/sdl2-ios \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DSDL_STATIC=ON -DSDL_SHARED=OFF -DSDL_TEST=OFF
+        cmake --build sdl2-build -j$(sysctl -n hw.ncpu)
+        cmake --install sdl2-build
+
+    - name: Cache CMake configure output (Xcode project)
+      id: cmake-cache
+      uses: actions/cache@v5
+      with:
+        path: build-ios
+        key: ios-cmake-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'ios/Info.plist', '.github/workflows/ci.yml') }}
+        restore-keys: |
+          ios-cmake-${{ runner.os }}-
+
+    - name: Configure (CMake → Xcode)
+      if: steps.cmake-cache.outputs.cache-hit != 'true'
+      run: |
+        cmake \
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+          -DCMAKE_OSX_ARCHITECTURES="arm64" \
+          -DAMPLITRON_VERSION="${{ steps.version.outputs.version }}" \
+          -DSDL2_DIR=$HOME/sdl2-ios/lib/cmake/SDL2 \
+          -G Xcode \
+          -S . -B build-ios
+
+    - name: Query build products path
+      id: ios-paths
+      run: |
+        PRODUCTS_DIR=$(xcodebuild -project build-ios/Amplitron.xcodeproj \
+          -scheme Amplitron -configuration Release -sdk iphoneos \
+          -showBuildSettings 2>/dev/null \
+          | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')
+        echo "products_dir=$PRODUCTS_DIR" >> $GITHUB_OUTPUT
+        echo "Build products dir: $PRODUCTS_DIR"
+
+    - name: Build (iOS Device, no codesign)
+      run: |
+        set -o pipefail
+        xcodebuild \
+          -project build-ios/Amplitron.xcodeproj \
+          -scheme Amplitron \
+          -configuration Release \
+          -sdk iphoneos \
+          ONLY_ACTIVE_ARCH=YES \
+          CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+          build 2>&1 | tee /tmp/xcode.log | xcpretty --color; \
+        STATUS=${PIPESTATUS[0]}; \
+        [ $STATUS -eq 0 ] || { echo "=== FULL XCODE LOG ==="; cat /tmp/xcode.log; exit $STATUS; }
+
+    - name: Validate .app bundle
+      run: |
+        PRODUCTS_DIR="${{ steps.ios-paths.outputs.products_dir }}"
+        APP="$PRODUCTS_DIR/Amplitron.app"
+        if [ ! -d "$APP" ]; then
+          echo "Amplitron.app not found at $APP"
+          echo "Searching workspace..."
+          find . -name "Amplitron.app" -type d 2>/dev/null || true
+          exit 1
+        fi
+        echo "App bundle: $APP"
+
+        # Binary must exist and be a valid Mach-O arm64 device binary
+        BINARY="$APP/Amplitron"
+        file "$BINARY"
+        lipo -info "$BINARY" | grep -E "arm64" \
+          || { echo "Expected arm64 slice not found"; exit 1; }
+
+        # Info.plist must be valid and have the correct bundle ID
+        plutil -lint "$APP/Info.plist"
+        BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP/Info.plist")
+        [ "$BUNDLE_ID" = "com.amplitron.app" ] \
+          || { echo "Wrong bundle ID: $BUNDLE_ID"; exit 1; }
+
+        echo ".app validation passed."
+
+    - name: Package .ipa
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        APP="${{ steps.ios-paths.outputs.products_dir }}/Amplitron.app"
+        mkdir -p ios-staging/Payload
+        cp -R "$APP" ios-staging/Payload/
+        cd ios-staging && zip -r Amplitron.ipa Payload/
+        ls -la ios-staging/
+
+    - name: Upload iOS App
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ios-build
+        path: ios-staging/Amplitron.ipa
         retention-days: 1

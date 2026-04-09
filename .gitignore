@@ -8,6 +8,8 @@ presets/*
 !presets/02_Classic_Rock_Crunch.json
 !presets/03_Modern_Metal_Lead.json
 !presets/04_Ambient_Swells.json
+!presets/05_Phase_Shift_Lead.json
+!presets/06_Jet_Flanger.json
 recordings/
 
 # IDE
@@ -54,3 +56,17 @@ compile_commands.json
 
 # ImGui auto-generated state
 imgui.ini
+
+# Android local build files (contain machine-specific paths, never commit)
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+android/app/.cxx/
+# SDL2 Java bridge — fetched by CI, not committed
+android/app/src/main/java/org/libsdl/
+
+# iOS / Xcode generated files
+build-ios/
+*.xcworkspace/
+xcuserdata/

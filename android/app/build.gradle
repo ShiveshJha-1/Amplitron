@@ -1,0 +1,76 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Version injected by CI via -PamplitronVersion=0.1.N; falls back to dev build.
+def appVersion = project.findProperty('amplitronVersion') ?: '0.0.0'
+def (major, minor, patch) = appVersion.tokenize('.')
+// versionCode must be >= 1; dev builds default to 1
+// Use sufficient digit space to avoid collisions: major (5 digits) + minor (4 digits) + patch (3 digits)
+def versionInt = Math.max(1, (major.toInteger() * 1000000) + (minor.toInteger() * 1000) + patch.toInteger())
+
+android {
+    namespace 'com.amplitron.app'
+    compileSdk 34
+
+    ndkVersion '27.1.12297006'   // NDK r27 — matches CI install step
+
+    defaultConfig {
+        applicationId 'com.amplitron.app'
+        minSdk 26          // Android 8.0+ — required for OpenGL ES 3.1 + low-latency audio
+        targetSdk 34
+        versionCode versionInt
+        versionName appVersion
+
+        externalNativeBuild {
+            cmake {
+                // Pass the version and let CMake detect ANDROID automatically via NDK toolchain
+                arguments "-DAMPLITRON_VERSION=${appVersion}",
+                          "-DCMAKE_BUILD_TYPE=Release"
+                abiFilters 'arm64-v8a', 'x86_64'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            // Point to the root CMakeLists.txt two levels up
+            path '../../CMakeLists.txt'
+            version '3.22.1'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Leave unsigned for CI-injected signing; actual signing happens in release pipeline
+        }
+        sideload {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Use the built-in debug keystore for local/CI sideloads
+            // APK is directly installable via ADB sideload without needing a paid signing certificate.
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            jniDebuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // Strip debug symbols from release .so files to reduce APK size
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging false
+        }
+    }
+}
+
+dependencies {
+    // No Java/Kotlin library deps; everything is C++ via SDL2 JNI bridge
+}

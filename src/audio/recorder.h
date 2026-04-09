@@ -68,7 +68,7 @@ private:
     std::string filepath_;
 
     std::chrono::steady_clock::time_point start_time_;
-    std::atomic<float> pause_duration_{0.0f};
+    float pause_duration_ = 0.0f;  // GUI thread only (accessed from pause/resume)
     std::chrono::steady_clock::time_point pause_start_;
 
     // Waveform ring buffer (written from audio thread, read from UI thread)

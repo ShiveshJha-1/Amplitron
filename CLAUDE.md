@@ -38,15 +38,25 @@ The undo/redo state-tracking agent.
 * **Role:** Maintains a stack-based history of all user actions (parameter changes, pedal additions/removals, reordering) to enable full undo/redo functionality.
 * **Responsibilities:** Recording commands, executing undo/redo, managing the history stack with proper cleanup when new actions branch off from a past state.
 
-### 1.6 The Spectrum Analyzer Agent (`spectrum_analyzer.cpp`)
+### 1.6 The Snapshot Manager Agent (`snapshot_manager.h`, `gui_snapshots.h/.cpp`)
+The in-session A/B/C/D board-state switching agent.
+* **Role:** Stores up to 4 complete board configurations in memory for instant, glitch-free recall during a live performance session — without any file I/O.
+* **Responsibilities:** Capturing the full effect chain state (effect instances, enabled/mix flags, all parameter values, input/output gains) into numbered slots; restoring a slot via `RecallSnapshotCommand` (undoable via Ctrl+Z); and rendering the [A][B][C][D] toolbar row with visual indication of the active slot. Left-click recalls a filled slot; right-click opens a context menu to save or clear any slot; Ctrl/Cmd+1–4 recalls.
+
+### 1.7 The Spectrum Analyzer Agent (`spectrum_analyzer.cpp`)
 The frequency-domain visualization agent.
 * **Role:** Performs real-time frequency analysis of the audio signal and renders a visual spectrum display in the GUI.
 * **Responsibilities:** Accepting audio data from the lock-free SPSC queue, computing frequency bins, and rendering the spectrum graph.
 
-### 1.7 The Recorder Agent (`recorder.cpp`)
+### 1.8 The Recorder Agent (`recorder.cpp`)
 The WAV recording agent.
 * **Role:** Captures processed audio output and writes it to WAV files on disk.
 * **Responsibilities:** Managing recording state (start/stop), writing WAV headers, buffering audio data, and flushing to disk.
+
+### 1.9 The MIDI Manager Agent (`midi_manager.h/.cpp`, `gui_midi.h/.cpp`)
+The MIDI CC mapping and learn agent.
+* **Role:** Receives MIDI Control Change messages from hardware controllers via RtMidi (callback thread) and routes them to effect parameters, bypass toggles, or master gains via the GUI/main thread.
+* **Responsibilities:** Opening/closing MIDI input ports; maintaining a table of CC-to-parameter mappings (identified by effect name + param name for reorder stability); receiving CC events from RtMidi callbacks and pushing them into a lock-free SPSC queue (`midi_queue_`); providing a MIDI Learn mode where the next incoming CC is automatically bound to a user-selected knob; polling and draining the MIDI queue each GUI frame (via `poll()`) to process events and apply parameter changes; persisting mappings to `midi_config.json`; and rendering a settings window (port selector, mapping table) plus right-click "MIDI Learn" menu items on every pedal knob.
 
 ---
 
@@ -65,7 +75,8 @@ Each effect pedal in Amplitron acts as an independent DSP processing agent. They
 ### 2.3 Frequency Shaping Agents
 * **`Equalizer` (The Tone-Shaping Agent):** A 3-band parametric EQ utilizing active Biquad filters. This agent splits the signal into Low Shelf, Peaking (Mid), and High Shelf bands, allowing precise amplification or attenuation of specific frequency domains.
 * **`AmpSimulator` (The Preamp Agent):** A full preamp model simulator with 4 selectable amp models (Clean American / Fender Twin, British Crunch / Marshall JCM800, High Gain Modern / Mesa Rectifier, Jazz Warm / Roland JC-120). Each model packages a characteristic tone-stack EQ curve (3 biquad filters), saturation transfer function (soft/hard clipping blend with asymmetry), and dynamic response (envelope follower with power sag simulation). Exposed parameters include Model, Gain, Bass/Mid/Treble trim, and Level.
-* **`CabinetSim` (The IR/Speaker Agent):** Replicates the physical acoustic properties of a guitar speaker cabinet. It applies convolution or specialized one-pole filtering to strip away the harsh, "fizzy" high-end frequencies that raw distortion produces, making the signal sound as though it was recorded by a microphone in a physical room.
+* **`CabinetSim` (The Parametric Speaker Agent):** Replicates the physical acoustic properties of a guitar speaker cabinet using a parametric EQ approach (3 biquad filters: LP rolloff, HP cut, resonance peak). Parameters include Type (cabinet size) and Bright (mic placement).
+* **`IRCabinet` (The Convolution Cabinet Agent):** Applies real cabinet impulse responses (IR files) via convolution for high-fidelity speaker simulation. Users load `.wav` IR files through a file browse dialog; the engine resamples to the session rate and performs uniform partitioned overlap-add convolution using kiss_fft. Thread-safe kernel swap via atomic pointer exchange ensures glitch-free IR loading during playback. Falls back to direct time-domain convolution for short IRs or block-size mismatches. Parameters include Level (output gain). IR file paths persist in presets via the metadata field.
 
 ### 2.4 Time & Spatial Agents
 * **`Chorus` (The Modulation Agent):** Duplicates the incoming signal and applies a low-frequency oscillator (LFO) to modulate the delay time of the duplicate. By using linear interpolation for fractional delay reads, it creates a thick, multi-instrument illusion.
@@ -91,6 +102,7 @@ Each effect pedal in Amplitron acts as an independent DSP processing agent. They
 Because the UI Agent and the DSP Agents operate on entirely different threads (with vastly different priority levels), they must communicate carefully to avoid "Dropouts" (audio clicking/stuttering).
 
 * **The `try_lock` + Shadow-Chain Paradigm:** The Audio Engine maintains an audio-thread-private shadow copy of the effect chain (`audio_shadow_effects_` / `audio_shadow_tuner_`). Each callback it attempts a non-blocking `try_lock` on `effect_mutex_`. If acquired it drains the SPSC command queue (applying pending parameter updates) and refreshes the shadow from `effects_`. If contended (GUI is mid-structural-mutation), it falls through and processes with the previous shadow — at most one callback behind, which is imperceptible. This eliminates the dry-pass glitch that previously occurred when skipping effect processing entirely on a failed `try_lock`.
+* **MIDI Callback → GUI Handoff:** The MIDI Manager maintains a lock-free SPSC queue (`midi_queue_`) between the RtMidi callback thread (producer) and the GUI thread (consumer). RtMidi callbacks push `MidiEvent` objects into the queue without blocking. The GUI thread drains the queue each frame via `MidiManager::poll(AudioEngine&)`, which routes CC values to effect parameters, bypass toggles, or master gains through the existing `engine.push_param_change()` path. Mappings are persisted to `midi_config.json` so they survive session restarts.
 * **Parameter Smoothing:** DSP Agents utilize one-pole filters internally on their parameter inputs. If the UI Agent jumps a parameter from `0.1` to `0.9` instantly, the DSP Agent interpolates the value over several samples to prevent audible "zipper" noise or clicking.
 
 ---
@@ -106,6 +118,40 @@ cmake --build build --target amplitron-tests && ./build/amplitron-tests
 * All tests must pass (0 failed) before the task is done.
 * If tests fail, fix the root cause — do not skip or comment out tests.
 * If you add a new DSP effect or system agent, add corresponding tests in `tests/`.
+
+---
+
+## Adding New External Libraries
+
+When a new system library dependency is added (e.g. via `brew install` / `apt-get` / MSYS2 pacboy), **all three CI platform jobs must be updated in `.github/workflows/ci.yml`**. Failing to do so causes linker errors only on the CI runner, even if the local build works.
+
+### Checklist for every new external library
+
+1. **Linux** (`test-linux` job): add the package to the `apt-get install` line (e.g. `librtmidi-dev`).
+2. **macOS** (`test-macos` job):
+   - Add the package to the `brew install` line.
+   - Add explicit `-DFOO_INCLUDE_DIRS` and `-DFOO_LIBRARIES` flags to the `cmake` invocation in the Build step, using `$HOMEBREW_PREFIX` paths. This is required because `pkg_check_modules` on macOS sets the library name only (`LIBRARIES=foo`) without adding the Homebrew lib directory to the linker search path. PortAudio and SDL2 use this same pattern as reference.
+3. **Windows** (`test-windows` job): add `foo:p` to the `pacboy` package list. If the library ships a DLL, also copy `libfoo*.dll` in the `Collect Binaries` step.
+
+### CMakeLists.txt pattern for new external libraries
+
+```cmake
+# Foo library
+if(NOT FOO_LIBRARIES)          # allow CI to override via -D flags
+    if(PkgConfig_FOUND)
+        pkg_check_modules(FOO foo)
+    endif()
+    if(NOT FOO_FOUND)
+        find_path(FOO_INCLUDE_DIRS foo/Foo.h PATHS ...)
+        find_library(FOO_LIBRARIES NAMES foo PATHS ...)
+    endif()
+endif()
+if(FOO_LIBRARY_DIRS)           # add search dir when pkg-config resolved the name
+    link_directories(${FOO_LIBRARY_DIRS})
+endif()
+```
+
+Then add `${FOO_INCLUDE_DIRS}` to `target_include_directories` and `${FOO_LIBRARIES}` to `target_link_libraries` for both `Amplitron` and `amplitron-tests`.
 
 ---
 
@@ -134,5 +180,5 @@ At the end of any task that meaningfully changes the system architecture, update
 
 ---
 **Maintained by:** [@sudip-mondal-2002](https://github.com/sudip-mondal-2002)
-**Architecture Reference** — 16 DSP effects, 7 system agents
+**Architecture Reference** — 17 DSP effects, 9 system agents
 

@@ -8,6 +8,7 @@
 namespace Amplitron {
 
 class PedalWidget;
+class GuiMidi;
 
 /**
  * @brief Visual representation of the audio effect signal chain.
@@ -22,8 +23,9 @@ public:
      * @brief Construct the pedal board.
      * @param engine  Reference to the audio engine that owns the effect chain.
      * @param history Reference to the shared command history for undo/redo.
+     * @param gui_midi Optional GuiMidi pointer for MIDI learn on initial widgets.
      */
-    PedalBoard(AudioEngine& engine, CommandHistory& history);
+    PedalBoard(AudioEngine& engine, CommandHistory& history, GuiMidi* gui_midi = nullptr);
 
     /** @brief Destructor. */
     ~PedalBoard();
@@ -38,6 +40,9 @@ public:
 
     /** @brief Whether only enabled pedals are shown (default true). */
     bool show_active_only() const { return show_active_only_; }
+
+    /** @brief Inject a GuiMidi pointer to propagate to PedalWidgets. */
+    void set_gui_midi(GuiMidi* gm) { gui_midi_ = gm; }
 
 private:
     /** @brief Render the "+ Add Pedal" button and its popup menu. */
@@ -60,6 +65,7 @@ private:
     std::vector<std::unique_ptr<PedalWidget>> widgets_;
     bool show_active_only_ = true;
     std::set<int> visible_indices_; // Indices of pedals that should be visible
+    GuiMidi* gui_midi_ = nullptr;
 };
 
 } // namespace Amplitron

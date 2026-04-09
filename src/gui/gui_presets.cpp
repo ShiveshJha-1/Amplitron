@@ -170,10 +170,10 @@ void GuiPresets::ensure_factory_presets() {
     clean.description = "Low gain, slight reverb, flat EQ";
     clean.input_gain = 0.6f;
     clean.output_gain = 0.85f;
-    clean.effects.push_back({"Compressor", true, 0.25f, {}});
-    clean.effects.push_back({"Equalizer", true, 1.0f, {}});
-    clean.effects.push_back({"Reverb", true, 0.2f, {}});
-    clean.effects.push_back({"Cabinet", true, 1.0f, {}});
+    clean.effects.push_back({"Compressor", true, 0.25f, {}, {}});
+    clean.effects.push_back({"Equalizer", true, 1.0f, {}, {}});
+    clean.effects.push_back({"Reverb", true, 0.2f, {}, {}});
+    clean.effects.push_back({"Cabinet", true, 1.0f, {}, {}});
     factory_presets.push_back(clean);
 
     PresetData crunch;
@@ -181,10 +181,10 @@ void GuiPresets::ensure_factory_presets() {
     crunch.description = "Mild overdrive with mid-forward response";
     crunch.input_gain = 0.85f;
     crunch.output_gain = 0.9f;
-    crunch.effects.push_back({"Noise Gate", true, 0.35f, {}});
-    crunch.effects.push_back({"Overdrive", true, 0.55f, {}});
-    crunch.effects.push_back({"Equalizer", true, 1.0f, {}});
-    crunch.effects.push_back({"Cabinet", true, 1.0f, {}});
+    crunch.effects.push_back({"Noise Gate", true, 0.35f, {}, {}});
+    crunch.effects.push_back({"Overdrive", true, 0.55f, {}, {}});
+    crunch.effects.push_back({"Equalizer", true, 1.0f, {}, {}});
+    crunch.effects.push_back({"Cabinet", true, 1.0f, {}, {}});
     factory_presets.push_back(crunch);
 
     PresetData metal;
@@ -192,10 +192,10 @@ void GuiPresets::ensure_factory_presets() {
     metal.description = "High distortion with scooped mids and tight cabinet";
     metal.input_gain = 1.15f;
     metal.output_gain = 0.75f;
-    metal.effects.push_back({"Noise Gate", true, 0.85f, {}});
-    metal.effects.push_back({"Distortion", true, 0.9f, {}});
-    metal.effects.push_back({"Equalizer", true, 1.0f, {}});
-    metal.effects.push_back({"Cabinet", true, 1.0f, {}});
+    metal.effects.push_back({"Noise Gate", true, 0.85f, {}, {}});
+    metal.effects.push_back({"Distortion", true, 0.9f, {}, {}});
+    metal.effects.push_back({"Equalizer", true, 1.0f, {}, {}});
+    metal.effects.push_back({"Cabinet", true, 1.0f, {}, {}});
     factory_presets.push_back(metal);
 
     PresetData jazz;
@@ -203,10 +203,10 @@ void GuiPresets::ensure_factory_presets() {
     jazz.description = "Clean, warm tone with light compression";
     jazz.input_gain = 0.55f;
     jazz.output_gain = 0.9f;
-    jazz.effects.push_back({"Compressor", true, 0.4f, {}});
-    jazz.effects.push_back({"Equalizer", true, 1.0f, {}});
-    jazz.effects.push_back({"Reverb", true, 0.12f, {}});
-    jazz.effects.push_back({"Cabinet", true, 1.0f, {}});
+    jazz.effects.push_back({"Compressor", true, 0.4f, {}, {}});
+    jazz.effects.push_back({"Equalizer", true, 1.0f, {}, {}});
+    jazz.effects.push_back({"Reverb", true, 0.12f, {}, {}});
+    jazz.effects.push_back({"Cabinet", true, 1.0f, {}, {}});
     factory_presets.push_back(jazz);
 
     for (const auto& preset : factory_presets) {

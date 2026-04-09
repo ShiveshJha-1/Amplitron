@@ -22,6 +22,19 @@
 #include <emscripten.h>
 #endif
 
+// SDL2's Android and iOS JNI/UIKit bridge locates the app entry point by
+// looking up the symbol "SDL_main" at runtime.  SDL_main.h renames our
+// main() to SDL_main() via a macro so the bridge can find it.  Without this
+// include the app crashes immediately on launch on both platforms.
+#ifdef __ANDROID__
+#include <SDL_main.h>
+#elif defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_IOS
+#include <SDL_main.h>
+#endif
+#endif
+
 static std::atomic<bool> g_running{true};
 
 #ifdef __EMSCRIPTEN__
