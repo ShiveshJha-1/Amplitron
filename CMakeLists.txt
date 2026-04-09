@@ -75,6 +75,21 @@ if(NOT SDL2_FOUND)
     endif()
 endif()
 
+# RtMidi (MIDI input)
+if(PkgConfig_FOUND)
+    pkg_check_modules(RTMIDI rtmidi)
+endif()
+if(NOT RTMIDI_FOUND)
+    find_path(RTMIDI_INCLUDE_DIRS rtmidi/RtMidi.h
+        PATHS /usr/include /usr/local/include /opt/homebrew/include
+              "C:/Program Files/rtmidi/include"
+              "${CMAKE_SOURCE_DIR}/external/rtmidi")
+    find_library(RTMIDI_LIBRARIES NAMES rtmidi
+        PATHS /usr/lib /usr/local/lib /opt/homebrew/lib
+              "C:/Program Files/rtmidi/lib"
+              "${CMAKE_SOURCE_DIR}/external/rtmidi")
+endif()
+
 # OpenGL
 find_package(OpenGL REQUIRED)
 
@@ -139,6 +154,8 @@ set(APP_SOURCES
     src/gui/pedal_widget.cpp
     src/gui/command_history.cpp
     src/gui/gui_snapshots.cpp
+    src/midi/midi_manager.cpp
+    src/gui/gui_midi.cpp
 )
 
 # --- Platform-specific sources (selected at configure time) ---
@@ -160,9 +177,7 @@ endif()
 if(ANDROID OR IOS)
     include(FetchContent)
     FetchContent_Declare(SDL2
-        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG        release-2.30.12
-        GIT_SHALLOW    TRUE
+        URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.30.12.tar.gz
     )
     # Build SDL2 as a static library so we ship a single .so / .a
     set(SDL_STATIC  ON  CACHE BOOL "" FORCE)
@@ -329,6 +344,7 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         ${PORTAUDIO_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${OPENGL_INCLUDE_DIR}
+        ${RTMIDI_INCLUDE_DIRS}
     )
 
     target_compile_definitions(Amplitron PRIVATE AMPLITRON_VERSION="${AMPLITRON_VERSION}")
@@ -337,6 +353,7 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         ${PORTAUDIO_LIBRARIES}
         ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
+        ${RTMIDI_LIBRARIES}
     )
 
     if(WIN32)
@@ -363,6 +380,7 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         tests/test_command_history.cpp
         tests/test_snapshot_manager.cpp
         tests/test_ir_cabinet.cpp
+        tests/test_midi_manager.cpp
     )
 
     # Effect + core sources needed by tests (no GUI, no main)
@@ -391,6 +409,7 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         src/audio/effects/pitch_shifter.cpp
         src/audio/dsp/wav_loader.cpp
         src/audio/dsp/convolution_engine.cpp
+        src/midi/midi_manager.cpp
     )
 
     add_executable(amplitron-tests ${TEST_SOURCES} ${CORE_SOURCES} ${KISS_FFT_SOURCES})
@@ -405,12 +424,14 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         ${PORTAUDIO_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${OPENGL_INCLUDE_DIR}
+        ${RTMIDI_INCLUDE_DIRS}
     )
 
     target_link_libraries(amplitron-tests PRIVATE
         ${PORTAUDIO_LIBRARIES}
         ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
+        ${RTMIDI_LIBRARIES}
     )
 
     if(WIN32)

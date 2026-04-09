@@ -1,0 +1,40 @@
+#pragma once
+
+#include <string>
+
+namespace Amplitron {
+
+class MidiManager;
+
+/**
+ * @brief GUI module for MIDI settings window and MIDI Learn integration.
+ *
+ * Renders a floating settings window (port selection, mapping table,
+ * learn status indicator) and provides menu items for knob right-click
+ * popups to enable MIDI Learn.
+ */
+class GuiMidi {
+public:
+    explicit GuiMidi(MidiManager& midi);
+
+    /** @brief Render the MIDI settings floating window. */
+    void render(bool& show);
+
+    /**
+     * @brief Render a "MIDI Learn" item inside a knob's right-click popup.
+     * @return true if learn was activated (caller should close the popup).
+     */
+    bool render_learn_menu_item(const std::string& effect_name,
+                                const std::string& param_name);
+
+    /**
+     * @brief Render a "MIDI Learn (Bypass)" item for effect bypass toggle.
+     * @return true if learn was activated.
+     */
+    bool render_learn_bypass_item(const std::string& effect_name);
+
+private:
+    MidiManager& midi_;
+};
+
+} // namespace Amplitron

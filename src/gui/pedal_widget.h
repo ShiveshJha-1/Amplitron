@@ -8,6 +8,7 @@ namespace Amplitron {
 
 class CommandHistory;
 class AudioEngine;
+class GuiMidi;
 
 /**
  * @brief GUI widget for a single audio effect pedal.
@@ -47,6 +48,12 @@ public:
      */
     void set_history(CommandHistory* history) { history_ = history; }
 
+    /**
+     * @brief Inject a GuiMidi pointer for MIDI Learn integration in knob popups.
+     * @param gm Pointer to the shared GuiMidi module (may be nullptr to disable).
+     */
+    void set_gui_midi(GuiMidi* gm) { gui_midi_ = gm; }
+
 private:
     /** @brief Render a single rotary knob (unused legacy helper). */
     void render_knob(const char* label, float* value, float min_val, float max_val,
@@ -59,6 +66,7 @@ private:
     std::shared_ptr<Effect> effect_;
     int index_;
     CommandHistory* history_ = nullptr;
+    GuiMidi* gui_midi_ = nullptr;
 
     // Knob drag tracking for undo coalescing
     bool knob_was_active_ = false;

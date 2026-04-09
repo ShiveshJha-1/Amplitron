@@ -59,6 +59,7 @@ void PedalBoard::rebuild_widgets() {
     for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
         auto w = std::make_unique<PedalWidget>(engine_, effects[i], i);
         w->set_history(&history_);
+        w->set_gui_midi(gui_midi_);
         widgets_.push_back(std::move(w));
 
         Effect* ptr = effects[i].get();

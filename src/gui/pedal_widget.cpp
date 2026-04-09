@@ -1,4 +1,5 @@
 #include "gui/pedal_widget.h"
+#include "gui/gui_midi.h"
 #include "audio/audio_engine.h"
 #include "gui/theme.h"
 #include "gui/command.h"
@@ -566,6 +567,11 @@ bool PedalWidget::render() {
                     engine_.push_param_change(index_, pi, new_val);
                     commit_param_change(pi, old_val, new_val);
                 }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::Separator();
+            if (gui_midi_ && gui_midi_->render_learn_menu_item(
+                    effect_->name(), params[pi].name)) {
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();

@@ -32,7 +32,8 @@ jobs:
         sudo apt-get install -y --no-install-recommends \
           build-essential cmake \
           libportaudio2 portaudio19-dev \
-          libsdl2-dev libgl1-mesa-dev libglu1-mesa-dev
+          libsdl2-dev libgl1-mesa-dev libglu1-mesa-dev \
+          librtmidi-dev
         mkdir -p ~/apt-cache
         cp /var/cache/apt/archives/*.deb ~/apt-cache/ 2>/dev/null || true
 
@@ -81,7 +82,7 @@ jobs:
         fetch-depth: 0
 
     - name: Install Dependencies
-      run: brew install portaudio sdl2
+      run: brew install portaudio sdl2 rtmidi
 
     - name: Setup External Dependencies
       run: |
@@ -325,6 +326,7 @@ jobs:
           ccache:p
           portaudio:p
           SDL2:p
+          rtmidi:p
         install: git
         cache: true
 
@@ -520,9 +522,18 @@ jobs:
           -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
           -DCMAKE_OSX_ARCHITECTURES="arm64" \
           -DAMPLITRON_VERSION="${{ steps.version.outputs.version }}" \
-          -DFETCHCONTENT_UPDATES_DISCONNECTED=ON \
           -G Xcode \
           -S . -B build-ios
+
+    - name: Query build products path
+      id: ios-paths
+      run: |
+        PRODUCTS_DIR=$(xcodebuild -project build-ios/Amplitron.xcodeproj \
+          -scheme Amplitron -configuration Release -sdk iphoneos \
+          -showBuildSettings 2>/dev/null \
+          | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')
+        echo "products_dir=$PRODUCTS_DIR" >> $GITHUB_OUTPUT
+        echo "Build products dir: $PRODUCTS_DIR"
 
     - name: Build (iOS Device, no codesign)
       run: |
@@ -532,7 +543,6 @@ jobs:
           -scheme Amplitron \
           -configuration Release \
           -sdk iphoneos \
-          -derivedDataPath ios-derived \
           ONLY_ACTIVE_ARCH=YES \
           CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
           build 2>&1 | tee /tmp/xcode.log | xcpretty --color; \
@@ -541,9 +551,15 @@ jobs:
 
     - name: Validate .app bundle
       run: |
-        APP=$(find ios-derived -name "Amplitron.app" -type d | head -1)
+        PRODUCTS_DIR="${{ steps.ios-paths.outputs.products_dir }}"
+        APP="$PRODUCTS_DIR/Amplitron.app"
+        if [ ! -d "$APP" ]; then
+          echo "Amplitron.app not found at $APP"
+          echo "Searching workspace..."
+          find . -name "Amplitron.app" -type d 2>/dev/null || true
+          exit 1
+        fi
         echo "App bundle: $APP"
-        [ -n "$APP" ] || { echo "Amplitron.app not found in ios-derived/"; find ios-derived -maxdepth 4 -type d; exit 1; }
 
         # Binary must exist and be a valid Mach-O arm64 device binary
         BINARY="$APP/Amplitron"
@@ -562,7 +578,7 @@ jobs:
     - name: Package .ipa
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        APP=$(find ios-derived -name "Amplitron.app" -type d | head -1)
+        APP="${{ steps.ios-paths.outputs.products_dir }}/Amplitron.app"
         mkdir -p ios-staging/Payload
         cp -R "$APP" ios-staging/Payload/
         cd ios-staging && zip -r Amplitron.ipa Payload/

@@ -40,7 +40,8 @@ GuiManager::GuiManager(AudioEngine& engine)
       gui_recording_(engine),
       gui_tuner_(engine, std::make_shared<TunerPedal>()),
       gui_analyzer_(engine),
-      gui_snapshots_(engine, command_history_) {}
+      gui_snapshots_(engine, command_history_),
+      gui_midi_(midi_manager_) {}
 
 GuiManager::~GuiManager() {
     shutdown();
@@ -177,8 +178,16 @@ bool GuiManager::initialize(int width, int height) {
     pedal_board_ = std::make_unique<PedalBoard>(engine_, command_history_);
     gui_presets_.set_pedal_board(pedal_board_.get());
     gui_snapshots_.set_pedal_board(pedal_board_.get());
+    pedal_board_->set_gui_midi(&gui_midi_);
 
     PresetManager::load_config();
+
+    // MIDI: load config first; if no saved mappings, install defaults
+    midi_manager_.load_config();
+    if (midi_manager_.mappings().empty()) {
+        midi_manager_.install_default_mappings();
+    }
+    midi_manager_.initialize();
 
 #ifndef AMPLITRON_NO_DESKTOP_SHELL
     update_check_thread_ = std::thread([this]() { this->check_for_updates(); });
@@ -195,6 +204,9 @@ void GuiManager::shutdown() {
     if (update_check_thread_.joinable()) {
         update_check_thread_.join();
     }
+
+    midi_manager_.save_config();
+    midi_manager_.shutdown();
 
     engine_.clear_tuner_tap();
     pedal_board_.reset();
@@ -224,6 +236,9 @@ bool GuiManager::run_frame() {
             event.window.windowID == SDL_GetWindowID(window_))
             return false;
     }
+
+    // Poll MIDI events and apply CC mappings
+    midi_manager_.poll(engine_);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -319,6 +334,9 @@ bool GuiManager::run_frame() {
     }
     if (show_tuner_) {
         gui_tuner_.render(show_tuner_);
+    }
+    if (show_midi_) {
+        gui_midi_.render(show_midi_);
     }
 
     // Rendering
@@ -423,11 +441,22 @@ void GuiManager::render_menu_bar() {
             if (ImGui::MenuItem("Open Tuner", nullptr, show_tuner_)) {
                 gui_tuner_.toggle(show_tuner_);
             }
+            if (ImGui::MenuItem("MIDI Settings", nullptr, show_midi_)) {
+                show_midi_ = !show_midi_;
+            }
             ImGui::EndMenu();
         }
 
         // Status bar (right side)
         float bar_w = ImGui::GetWindowWidth();
+
+        // MIDI status indicator
+        ImGui::SameLine(bar_w - 450);
+        if (midi_manager_.is_port_open()) {
+            ImGui::TextColored(Theme::Live(), "MIDI");
+        } else {
+            ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f), "MIDI");
+        }
 
         // Recording indicator
         ImGui::SameLine(bar_w - 400);

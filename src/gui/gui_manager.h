@@ -9,6 +9,8 @@
 #include "gui/gui_tuner.h"
 #include "gui/gui_analyzer.h"
 #include "gui/gui_snapshots.h"
+#include "gui/gui_midi.h"
+#include "midi/midi_manager.h"
 #include <thread>
 #include <mutex>
 #include <string>
@@ -72,6 +74,9 @@ private:
     GuiTuner gui_tuner_;
     GuiAnalyzer gui_analyzer_;
     GuiSnapshots gui_snapshots_;
+    MidiManager midi_manager_;
+    GuiMidi gui_midi_;
+    bool show_midi_ = false;
 
     // Update checking
     void check_for_updates();

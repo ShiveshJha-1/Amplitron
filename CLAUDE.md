@@ -53,6 +53,11 @@ The WAV recording agent.
 * **Role:** Captures processed audio output and writes it to WAV files on disk.
 * **Responsibilities:** Managing recording state (start/stop), writing WAV headers, buffering audio data, and flushing to disk.
 
+### 1.9 The MIDI Manager Agent (`midi_manager.h/.cpp`, `gui_midi.h/.cpp`)
+The MIDI CC mapping and learn agent.
+* **Role:** Receives MIDI Control Change messages from hardware controllers via RtMidi and routes them to effect parameters, bypass toggles, or master gains through the existing lock-free SPSC command queue.
+* **Responsibilities:** Opening/closing MIDI input ports; maintaining a table of CC-to-parameter mappings (identified by effect name + param name for reorder stability); providing a MIDI Learn mode where the next incoming CC is automatically bound to a user-selected knob; polling a lock-free SPSC queue each GUI frame to drain MIDI events without blocking the audio thread; persisting mappings to `midi_config.json`; and rendering a settings window (port selector, mapping table) plus right-click "MIDI Learn" menu items on every pedal knob.
+
 ---
 
 ## 2. DSP Node Agents (The Pedal Board)
@@ -140,5 +145,5 @@ At the end of any task that meaningfully changes the system architecture, update
 
 ---
 **Maintained by:** [@sudip-mondal-2002](https://github.com/sudip-mondal-2002)
-**Architecture Reference** — 17 DSP effects, 8 system agents
+**Architecture Reference** — 17 DSP effects, 9 system agents
 
