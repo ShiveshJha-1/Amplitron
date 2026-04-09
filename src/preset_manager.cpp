@@ -1,5 +1,6 @@
 #include "preset_manager.h"
 #include "audio/effect_factory.h"
+#include "audio/effects/ir_cabinet.h"
 
 #include <iostream>
 #include <ctime>
@@ -393,7 +394,23 @@ std::string PresetManager::to_json(const PresetData& preset) {
             ss << "\n";
         }
 
-        ss << "      }\n";
+        ss << "      }";
+
+        // Serialize metadata if present
+        if (!fx.metadata.empty()) {
+            ss << ",\n      \"metadata\": {\n";
+            size_t m = 0;
+            for (const auto& kv : fx.metadata) {
+                ss << "        \"" << escape_json_string(kv.first) << "\": \""
+                   << escape_json_string(kv.second) << "\"";
+                if (m + 1 < fx.metadata.size()) ss << ",";
+                ss << "\n";
+                ++m;
+            }
+            ss << "      }";
+        }
+
+        ss << "\n";
         ss << "    }";
         if (e + 1 < preset.effects.size()) ss << ",";
         ss << "\n";
@@ -514,6 +531,43 @@ bool PresetManager::from_json(const std::string& json, PresetData& preset) {
             }
         }
 
+        // Parse optional metadata sub-object
+        size_t meta_pos = obj.find("\"metadata\"");
+        if (meta_pos != std::string::npos) {
+            size_t m_start = obj.find('{', meta_pos);
+            size_t m_end = obj.find('}', m_start + 1);
+            if (m_start != std::string::npos && m_end != std::string::npos) {
+                std::string meta_str = obj.substr(m_start + 1, m_end - m_start - 1);
+
+                size_t mpos = 0;
+                while (mpos < meta_str.size()) {
+                    size_t mk_start = meta_str.find('"', mpos);
+                    if (mk_start == std::string::npos) break;
+                    size_t mk_end = meta_str.find('"', mk_start + 1);
+                    if (mk_end == std::string::npos) break;
+
+                    std::string mkey = meta_str.substr(mk_start + 1, mk_end - mk_start - 1);
+
+                    size_t mcolon = meta_str.find(':', mk_end);
+                    if (mcolon == std::string::npos) break;
+
+                    size_t mv_start = meta_str.find('"', mcolon + 1);
+                    if (mv_start == std::string::npos) break;
+                    size_t mv_end = mv_start + 1;
+                    while (mv_end < meta_str.size() &&
+                           !(meta_str[mv_end] == '"' && meta_str[mv_end - 1] != '\\'))
+                        ++mv_end;
+
+                    std::string mval = meta_str.substr(mv_start + 1, mv_end - mv_start - 1);
+                    fx.metadata[unescape_json_string(mkey)] = unescape_json_string(mval);
+
+                    mpos = meta_str.find(',', mv_end);
+                    if (mpos == std::string::npos) break;
+                    ++mpos;
+                }
+            }
+        }
+
         if (!fx.type.empty()) {
             preset.effects.push_back(fx);
         }
@@ -560,6 +614,15 @@ bool PresetManager::save_preset(const std::string& filepath,
         for (auto& p : fx->params()) {
             fd.params.push_back({p.name, p.value});
         }
+
+        // Store IR Cabinet metadata
+        if (std::strcmp(fx->name(), "IR Cabinet") == 0) {
+            auto* ir_cab = dynamic_cast<IRCabinet*>(fx.get());
+            if (ir_cab && ir_cab->has_ir()) {
+                fd.metadata["ir_path"] = ir_cab->ir_path();
+            }
+        }
+
         preset.effects.push_back(fd);
     }
 
@@ -614,6 +677,18 @@ bool PresetManager::load_preset(const std::string& filepath,
                 if (ep.name == saved_param.first) {
                     ep.value = clamp(saved_param.second, ep.min_val, ep.max_val);
                     break;
+                }
+            }
+        }
+
+        // Restore IR Cabinet metadata
+        auto it = fd.metadata.find("ir_path");
+        if (it != fd.metadata.end() && !it->second.empty()) {
+            auto* ir_cab = dynamic_cast<IRCabinet*>(fx.get());
+            if (ir_cab) {
+                if (!ir_cab->load_ir(it->second)) {
+                    std::cerr << "IR Cabinet: could not load IR file: "
+                              << it->second << std::endl;
                 }
             }
         }

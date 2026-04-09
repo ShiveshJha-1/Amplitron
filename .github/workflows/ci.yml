@@ -505,8 +505,9 @@ jobs:
 
     - name: Validate .app bundle
       run: |
-        APP=$(find ios-derived/Build/Products -name "Amplitron.app" -type d | head -1)
+        APP=$(find ios-derived -name "Amplitron.app" -type d | head -1)
         echo "App bundle: $APP"
+        [ -n "$APP" ] || { echo "Amplitron.app not found in ios-derived/"; find ios-derived -maxdepth 4 -type d; exit 1; }
 
         # Binary must exist and be a valid Mach-O arm64 device binary
         BINARY="$APP/Amplitron"
@@ -525,7 +526,7 @@ jobs:
     - name: Package .ipa
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        APP=$(find ios-derived/Build/Products -name "Amplitron.app" -type d | head -1)
+        APP=$(find ios-derived -name "Amplitron.app" -type d | head -1)
         mkdir -p ios-staging/Payload
         cp -R "$APP" ios-staging/Payload/
         cd ios-staging && zip -r Amplitron.ipa Payload/

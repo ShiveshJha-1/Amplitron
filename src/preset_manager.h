@@ -3,6 +3,7 @@
 #include "common.h"
 #include "audio/audio_engine.h"
 #include <fstream>
+#include <map>
 #include <sstream>
 
 namespace Amplitron {
@@ -18,6 +19,7 @@ struct PresetData {
         bool enabled = false;
         float mix = 1.0f;
         std::vector<std::pair<std::string, float>> params;
+        std::map<std::string, std::string> metadata;  // string key-value pairs (e.g. IR file path)
     };
     std::vector<EffectData> effects;
 };

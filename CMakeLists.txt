@@ -97,6 +97,12 @@ if(NOT MSVC)
     set_source_files_properties(${IMGUI_SOURCES} PROPERTIES COMPILE_FLAGS "-w")
 endif()
 
+# --- kiss_fft (bundled, BSD-3-Clause) ---
+set(KISS_FFT_SOURCES ${CMAKE_SOURCE_DIR}/external/kiss_fft/kiss_fft.c)
+if(NOT MSVC)
+    set_source_files_properties(${KISS_FFT_SOURCES} PROPERTIES COMPILE_FLAGS "-w")
+endif()
+
 # --- Application Sources (platform-agnostic) ---
 set(APP_SOURCES
     src/main.cpp
@@ -114,7 +120,10 @@ set(APP_SOURCES
     src/audio/effects/noise_gate.cpp
     src/audio/effects/compressor.cpp
     src/audio/effects/cabinet_sim.cpp
+    src/audio/effects/ir_cabinet.cpp
     src/audio/effects/amp_simulator.cpp
+    src/audio/dsp/wav_loader.cpp
+    src/audio/dsp/convolution_engine.cpp
     src/audio/effects/tuner.cpp
     src/audio/effects/wah.cpp
     src/audio/effects/octaver.cpp
@@ -166,11 +175,12 @@ endif()
 if(EMSCRIPTEN)
 
     # --- Emscripten / WebAssembly build ---
-    add_executable(Amplitron ${APP_SOURCES} ${BACKEND_SOURCES} ${DIALOG_SOURCES} ${IMGUI_SOURCES})
+    add_executable(Amplitron ${APP_SOURCES} ${BACKEND_SOURCES} ${DIALOG_SOURCES} ${IMGUI_SOURCES} ${KISS_FFT_SOURCES})
 
     target_include_directories(Amplitron PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/external/kiss_fft
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
     )
@@ -220,11 +230,13 @@ elseif(ANDROID)
         ${BACKEND_SOURCES}
         ${DIALOG_SOURCES}
         ${IMGUI_SOURCES}
+        ${KISS_FFT_SOURCES}
     )
 
     target_include_directories(main PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/external/kiss_fft
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
         ${SDL2_SOURCE_DIR}/include
@@ -251,11 +263,13 @@ elseif(IOS)
         ${BACKEND_SOURCES}
         ${DIALOG_SOURCES}
         ${IMGUI_SOURCES}
+        ${KISS_FFT_SOURCES}
     )
 
     target_include_directories(Amplitron PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/external/kiss_fft
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
         ${SDL2_SOURCE_DIR}/include
@@ -304,11 +318,12 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         enable_language(RC)
     endif()
 
-    add_executable(Amplitron ${APP_SOURCES} ${BACKEND_SOURCES} ${DIALOG_SOURCES} ${IMGUI_SOURCES} $<$<PLATFORM_ID:Windows>:${WIN_RC}>)
+    add_executable(Amplitron ${APP_SOURCES} ${BACKEND_SOURCES} ${DIALOG_SOURCES} ${IMGUI_SOURCES} ${KISS_FFT_SOURCES} $<$<PLATFORM_ID:Windows>:${WIN_RC}>)
 
     target_include_directories(Amplitron PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/external/kiss_fft
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends
         ${PORTAUDIO_INCLUDE_DIRS}
@@ -347,6 +362,7 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         tests/test_theme.cpp
         tests/test_command_history.cpp
         tests/test_snapshot_manager.cpp
+        tests/test_ir_cabinet.cpp
     )
 
     # Effect + core sources needed by tests (no GUI, no main)
@@ -367,17 +383,22 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         src/audio/effects/noise_gate.cpp
         src/audio/effects/compressor.cpp
         src/audio/effects/cabinet_sim.cpp
+        src/audio/effects/ir_cabinet.cpp
         src/audio/effects/amp_simulator.cpp
         src/audio/effects/tuner.cpp
         src/audio/effects/wah.cpp
         src/audio/effects/octaver.cpp
         src/audio/effects/pitch_shifter.cpp
+        src/audio/dsp/wav_loader.cpp
+        src/audio/dsp/convolution_engine.cpp
     )
 
-    add_executable(amplitron-tests ${TEST_SOURCES} ${CORE_SOURCES})
+    add_executable(amplitron-tests ${TEST_SOURCES} ${CORE_SOURCES} ${KISS_FFT_SOURCES})
 
     target_include_directories(amplitron-tests PRIVATE
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/external
+        ${CMAKE_SOURCE_DIR}/external/kiss_fft
         ${CMAKE_SOURCE_DIR}/tests
         ${IMGUI_DIR}
         ${IMGUI_DIR}/backends

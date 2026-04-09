@@ -70,7 +70,8 @@ Each effect pedal in Amplitron acts as an independent DSP processing agent. They
 ### 2.3 Frequency Shaping Agents
 * **`Equalizer` (The Tone-Shaping Agent):** A 3-band parametric EQ utilizing active Biquad filters. This agent splits the signal into Low Shelf, Peaking (Mid), and High Shelf bands, allowing precise amplification or attenuation of specific frequency domains.
 * **`AmpSimulator` (The Preamp Agent):** A full preamp model simulator with 4 selectable amp models (Clean American / Fender Twin, British Crunch / Marshall JCM800, High Gain Modern / Mesa Rectifier, Jazz Warm / Roland JC-120). Each model packages a characteristic tone-stack EQ curve (3 biquad filters), saturation transfer function (soft/hard clipping blend with asymmetry), and dynamic response (envelope follower with power sag simulation). Exposed parameters include Model, Gain, Bass/Mid/Treble trim, and Level.
-* **`CabinetSim` (The IR/Speaker Agent):** Replicates the physical acoustic properties of a guitar speaker cabinet. It applies convolution or specialized one-pole filtering to strip away the harsh, "fizzy" high-end frequencies that raw distortion produces, making the signal sound as though it was recorded by a microphone in a physical room.
+* **`CabinetSim` (The Parametric Speaker Agent):** Replicates the physical acoustic properties of a guitar speaker cabinet using a parametric EQ approach (3 biquad filters: LP rolloff, HP cut, resonance peak). Parameters include Type (cabinet size) and Bright (mic placement).
+* **`IRCabinet` (The Convolution Cabinet Agent):** Applies real cabinet impulse responses (IR files) via convolution for high-fidelity speaker simulation. Users load `.wav` IR files through a file browse dialog; the engine resamples to the session rate and performs uniform partitioned overlap-add convolution using kiss_fft. Thread-safe kernel swap via atomic pointer exchange ensures glitch-free IR loading during playback. Falls back to direct time-domain convolution for short IRs or block-size mismatches. Parameters include Level (output gain). IR file paths persist in presets via the metadata field.
 
 ### 2.4 Time & Spatial Agents
 * **`Chorus` (The Modulation Agent):** Duplicates the incoming signal and applies a low-frequency oscillator (LFO) to modulate the delay time of the duplicate. By using linear interpolation for fractional delay reads, it creates a thick, multi-instrument illusion.
@@ -139,5 +140,5 @@ At the end of any task that meaningfully changes the system architecture, update
 
 ---
 **Maintained by:** [@sudip-mondal-2002](https://github.com/sudip-mondal-2002)
-**Architecture Reference** — 16 DSP effects, 8 system agents
+**Architecture Reference** — 17 DSP effects, 8 system agents
 
