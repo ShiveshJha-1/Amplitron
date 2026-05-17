@@ -216,6 +216,7 @@ bool GuiManager::initialize(int width, int height) {
     return true;
 }
 
+
 void GuiManager::shutdown() {
     if (!initialized_) return;
     initialized_ = false;

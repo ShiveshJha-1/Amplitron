@@ -450,7 +450,13 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         ${RTMIDI_INCLUDE_DIRS}
     )
 
-    target_compile_definitions(Amplitron PRIVATE AMPLITRON_VERSION="${AMPLITRON_VERSION}")
+    # ============================================================
+    # DEFINE AMPLITRON_HAS_MIDI FOR DESKTOP BUILDS
+    # ============================================================
+    target_compile_definitions(Amplitron PRIVATE 
+        AMPLITRON_VERSION="${AMPLITRON_VERSION}"
+        AMPLITRON_HAS_MIDI
+    )
 
     target_link_libraries(Amplitron PRIVATE
         nlohmann_json::nlohmann_json
@@ -550,6 +556,11 @@ else() # NOT EMSCRIPTEN, ANDROID, or IOS
         ${OPENGL_INCLUDE_DIR}
         ${RTMIDI_INCLUDE_DIRS}
     )
+
+    # ============================================================
+    # DEFINE AMPLITRON_HAS_MIDI FOR TEST BUILDS
+    # ============================================================
+    target_compile_definitions(amplitron-tests PRIVATE AMPLITRON_HAS_MIDI)
 
     target_link_libraries(amplitron-tests PRIVATE
         nlohmann_json::nlohmann_json
