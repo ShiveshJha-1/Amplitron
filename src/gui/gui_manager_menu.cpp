@@ -108,6 +108,17 @@ void GuiManager::render_menu_bar() {
                 }
                 ImGui::EndPopup();
             }
+            if (ImGui::MenuItem("Copy Preset to Clipboard")) {
+                std::string json_string = gui_presets_.serialise_current_preset_to_json();
+                if (!json_string.empty()) {
+                    ImGui::SetClipboardText(json_string.c_str());
+                    toast_message_ = "Preset copied to clipboard!";
+                    toast_timer_ = 2.0f;
+                } else {
+                    toast_message_ = "Failed to copy: empty preset.";
+                    toast_timer_ = 2.0f;
+                }
+            }
             ImGui::Separator();
 #ifndef AMPLITRON_NO_DESKTOP_SHELL
             if (ImGui::MenuItem("Change Presets Directory...")) {
