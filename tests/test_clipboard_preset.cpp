@@ -6,44 +6,44 @@
 using namespace Amplitron;
 
 // Test 1: Serialised JSON is non-empty for a valid preset
-TEST(ClipboardPresetTest, SerialiseReturnsNonEmptyString) {
-    PresetData pm;
-    pm.name = "Test Preset";
-    pm.description = "Test description";
-    pm.input_gain = 0.5f;
-    pm.output_gain = 0.5f;
-    std::string json = to_json_ext(pm);
+TEST(clipboard_preset_serialise_returns_nonempty_string) {
+    PresetData pd;
+    pd.name = "Test Preset";
+    pd.description = "Test description";
+    pd.input_gain = 0.5f;
+    pd.output_gain = 0.5f;
+    std::string json = to_json_ext(pd);
     ASSERT_FALSE(json.empty());
 }
 
 // Test 2: Serialised JSON is valid JSON (contains { and })
-TEST(ClipboardPresetTest, SerialiseReturnsValidJson) {
-    PresetData pm;
-    pm.name = "Test Preset";
-    std::string json = to_json_ext(pm);
+TEST(clipboard_preset_serialise_returns_valid_json) {
+    PresetData pd;
+    pd.name = "Test Preset";
+    std::string json = to_json_ext(pd);
     ASSERT_NE(json.find('{'), std::string::npos);
     ASSERT_NE(json.find('}'), std::string::npos);
 }
 
 // Test 3: Round-trip — serialise then deserialise gives same preset
-TEST(ClipboardPresetTest, RoundTripRestoresSamePreset) {
-    PresetData pm;
-    pm.name = "Test Preset";
-    pm.description = "Test description";
-    pm.input_gain = 0.5f;
-    pm.output_gain = 0.5f;
+TEST(clipboard_preset_roundtrip_restores_same_preset) {
+    PresetData pd;
+    pd.name = "Test Preset";
+    pd.description = "Test description";
+    pd.input_gain = 0.5f;
+    pd.output_gain = 0.5f;
     
-    std::string json = to_json_ext(pm);
+    std::string json = to_json_ext(pd);
 
-    PresetData pm2;
-    bool loaded = from_json_ext(json, pm2);
+    PresetData pd2;
+    bool loaded = from_json_ext(json, pd2);
     ASSERT_TRUE(loaded);
-    EXPECT_EQ(to_json_ext(pm), to_json_ext(pm2));
+    ASSERT_EQ(to_json_ext(pd), to_json_ext(pd2));
 }
 
 // Test 4: Empty/invalid JSON does not crash
-TEST(ClipboardPresetTest, LoadInvalidJsonReturnsFalse) {
-    PresetData pm;
-    bool loaded = from_json_ext("not valid json {{{{", pm);
+TEST(clipboard_preset_load_invalid_json_returns_false) {
+    PresetData pd;
+    bool loaded = from_json_ext("not valid json {{{{", pd);
     ASSERT_FALSE(loaded);
 }
