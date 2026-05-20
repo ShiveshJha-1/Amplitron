@@ -2,6 +2,7 @@
 #include "gui/pedal_board.h"
 #include "gui/command.h"
 #include "gui/theme.h"
+#include "preset_json.h"
 #include "audio/effects/cabinet_sim.h"
 #include <cstring>
 #include <imgui.h>
@@ -419,6 +420,15 @@ void GuiPresets::render_load_popup(bool& show) {
     }
 
     ImGui::End();
+}
+
+std::string GuiPresets::serialise_current_preset_to_json() const {
+    PresetData preset = capture_current_state(engine_);
+    preset.name = current_preset_name();
+    if (midi_manager_) {
+        preset.midi_mappings = midi_manager_->mappings();
+    }
+    return to_json_ext(preset);
 }
 
 } // namespace Amplitron
