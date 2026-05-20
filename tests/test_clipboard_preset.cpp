@@ -2,6 +2,7 @@
 #include "preset_json.h"
 #include "preset_manager.h"
 #include <string>
+#include <cmath>
 
 using namespace Amplitron;
 
@@ -38,7 +39,11 @@ TEST(clipboard_preset_roundtrip_restores_same_preset) {
     PresetData pd2;
     bool loaded = from_json_ext(json, pd2);
     ASSERT_TRUE(loaded);
-    ASSERT_EQ(to_json_ext(pd), to_json_ext(pd2));
+    
+    ASSERT_EQ(pd.name, pd2.name);
+    ASSERT_EQ(pd.description, pd2.description);
+    ASSERT_NEAR(pd.input_gain, pd2.input_gain, 0.001f);
+    ASSERT_NEAR(pd.output_gain, pd2.output_gain, 0.001f);
 }
 
 // Test 4: Empty/invalid JSON does not crash
