@@ -77,17 +77,23 @@ bool GuiManager::run_frame() {
 
     render_master_controls();
 
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
     // Recording controls (above pedal board)
     gui_recording_.render_controls();
 
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
     // In-session snapshots (A/B/C/D slot row)
     gui_snapshots_.render();
 
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
 
     float analyzer_reserved_h = gui_analyzer_.analyzer_reserved_height();
     ImGui::BeginChild("PedalBoardRegion", ImVec2(0, -analyzer_reserved_h), false);
@@ -96,7 +102,9 @@ bool GuiManager::run_frame() {
     }
     ImGui::EndChild();
 
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
     gui_analyzer_.render();
 
     ImGui::End();

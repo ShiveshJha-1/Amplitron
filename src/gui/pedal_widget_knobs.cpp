@@ -273,43 +273,45 @@ void PedalWidget::render_knobs(ImDrawList* dl, ImVec2 p0, float pedal_width, boo
         dl->AddLine(ptr_from, ptr_to, ptr_color, 2.5f);
         dl->AddCircleFilled(ptr_to, 3.0f, ptr_color);
 
-        // Enhanced tooltip with MIDI info
+        // Enhanced tooltip with MIDI info (audited and simplified to remove redundant instructions)
         if (is_hovered || is_active) {
-            std::string val_str  = Theme::formatParameterValue(params[pi].value, params[pi].unit);
-            std::string min_str  = Theme::formatParameterValue(params[pi].min_val, params[pi].unit);
-            std::string max_str  = Theme::formatParameterValue(params[pi].max_val, params[pi].unit);
-            
-            // Check for MIDI mapping to show in tooltip
             std::string midi_info = "";
             if (gui_midi_) {
                 midi_info = gui_midi_->get_mapping_info(effect_->name(), params[pi].name);
             }
             
-            if (params[pi].tooltip.empty()) {
-                ImGui::SetTooltip("%s: %s\nRange: [%s, %s]%s\n\nRotate or drag to adjust\nScroll wheel also works\nShift=fine  Ctrl=coarse\nDbl-click=reset  Right-click=edit/MIDI",
-                    params[pi].name.c_str(), val_str.c_str(), min_str.c_str(), max_str.c_str(),
-                    midi_info.c_str());
-            } else {
-                ImGui::SetTooltip("%s: %s\nRange: [%s, %s]\n\n%s%s\n\nRotate or drag to adjust\nScroll wheel also works\nShift=fine  Ctrl=coarse\nDbl-click=reset  Right-click=edit/MIDI",
-                    params[pi].name.c_str(), val_str.c_str(), min_str.c_str(), max_str.c_str(),
-                    params[pi].tooltip.c_str(), midi_info.c_str());
+            if (!params[pi].tooltip.empty() || !midi_info.empty()) {
+                if (!params[pi].tooltip.empty() && !midi_info.empty()) {
+                    ImGui::SetTooltip("%s\n\n%s", params[pi].tooltip.c_str(), midi_info.c_str());
+                } else if (!params[pi].tooltip.empty()) {
+                    ImGui::SetTooltip("%s", params[pi].tooltip.c_str());
+                } else {
+                    ImGui::SetTooltip("%s", midi_info.c_str());
+                }
             }
         }
 
-        const char* pname = params[pi].name.c_str();
-        ImVec2 text_size = ImGui::CalcTextSize(pname);
+        std::string pname_with_unit = params[pi].name;
+        if (!params[pi].unit.empty()) {
+            pname_with_unit += " (" + params[pi].unit + ")";
+        }
+        ImVec2 text_size = ImGui::CalcTextSize(pname_with_unit.c_str());
+        // Increased padding between knob and label (from 8 to 11)
+        float label_y = knob_center.y + knob_radius + 11.0f;
         ImGui::SetCursorScreenPos(ImVec2(
             knob_center.x - text_size.x * 0.5f,
-            knob_center.y + knob_radius + 8));
+            label_y));
         ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextSecondary());
-        ImGui::TextUnformatted(pname);
+        ImGui::TextUnformatted(pname_with_unit.c_str());
         ImGui::PopStyleColor();
 
         std::string val_display = Theme::formatParameterValue(params[pi].value, params[pi].unit);
         ImVec2 val_size = ImGui::CalcTextSize(val_display.c_str());
+        // Value is grouped tightly directly below the label (with no large vertical gap)
+        float val_y = label_y + 13.0f;
         ImGui::SetCursorScreenPos(ImVec2(
             knob_center.x - val_size.x * 0.5f,
-            knob_center.y - knob_radius - 20));
+            val_y));
         ImGui::PushStyleColor(ImGuiCol_Text,
             is_active ? Theme::GoldHot() :
                         Theme::TextDim());

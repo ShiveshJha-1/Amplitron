@@ -10,7 +10,7 @@ namespace Amplitron {
 static EffectRegistrar<IRCabinet> reg("IR Cabinet");
 
 IRCabinet::IRCabinet() {
-    params_.push_back({"Level", 1.0f, 0.0f, 2.0f, 1.0f, "", "Output level"});
+    params_.push_back({"Level", 1.0f, 0.0f, 2.0f, 1.0f, "x", "Output level"});
 }
 
 IRCabinet::~IRCabinet() {
