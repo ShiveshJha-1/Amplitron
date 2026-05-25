@@ -115,29 +115,24 @@ void GuiManager::render_menu_bar() {
                 ImGui::EndPopup();
             }
             if (ImGui::MenuItem("Copy Preset to Clipboard")) {
-                if (!pedal_board_) {
-                    toast_message_ = "Clipboard unavailable.";
+                std::string json_string = gui_presets_.serialise_current_preset_to_json();
+                if (!json_string.empty()) {
+#ifdef __EMSCRIPTEN__
+                    EM_ASM({
+                        var text = UTF8ToString($0);
+                        navigator.clipboard.writeText(text).then(function() {
+                        }).catch(function(err) {
+                            console.error("Clipboard write failed: ", err);
+                        });
+                    }, json_string.c_str());
+#else
+                    ImGui::SetClipboardText(json_string.c_str());
+#endif
+                    toast_message_ = "Preset copied to clipboard!";
                     toast_timer_ = 3.5f;
                 } else {
-                    std::string json_string = gui_presets_.serialise_current_preset_to_json();
-                    if (!json_string.empty()) {
-#ifdef __EMSCRIPTEN__
-                        EM_ASM({
-                            var text = UTF8ToString($0);
-                            navigator.clipboard.writeText(text).then(function() {
-                            }).catch(function(err) {
-                                console.error("Clipboard write failed: ", err);
-                            });
-                        }, json_string.c_str());
-#else
-                        ImGui::SetClipboardText(json_string.c_str());
-#endif
-                        toast_message_ = "Preset copied to clipboard!";
-                        toast_timer_ = 3.5f;
-                    } else {
-                        toast_message_ = "No preset data to copy.";
-                        toast_timer_ = 3.5f;
-                    }
+                    toast_message_ = "No preset data to copy.";
+                    toast_timer_ = 3.5f;
                 }
             }
             ImGui::Separator();
@@ -168,7 +163,6 @@ void GuiManager::render_menu_bar() {
                 }
                 ImGui::EndPopup();
             }
-#endif
             ImGui::Separator();
             if (ImGui::MenuItem("Settings")) show_settings_ = true;
             ImGui::Separator();
