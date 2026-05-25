@@ -110,13 +110,18 @@ void GuiManager::render_menu_bar() {
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Copy Preset to Clipboard")) {
-                std::string json_string = PresetManager::serialize_preset(*pedal_board_);
-                if (!json_string.empty()) {
-                    ImGui::SetClipboardText(json_string.c_str());
-                    m_toast_message = "✓ Preset successfully copied!";
-                    m_toast_timer = 3.5f;
+                if (pedal_board_) {
+                    std::string json_string = PresetManager::serialize_preset(*pedal_board_);
+                    if (!json_string.empty()) {
+                        ImGui::SetClipboardText(json_string.c_str());
+                        m_toast_message = "✓ Preset successfully copied!";
+                        m_toast_timer = 3.5f;
+                    } else {
+                        m_toast_message = "⚠ No preset data to copy.";
+                        m_toast_timer = 3.5f;
+                    }
                 } else {
-                    m_toast_message = "⚠ No preset data to copy.";
+                    m_toast_message = "⚠ Clipboard unavailable.";
                     m_toast_timer = 3.5f;
                 }
             }
