@@ -46,6 +46,7 @@ public:
     bool save_named_preset(const std::string& preset_name,
                            const std::string& description);
     bool load_preset_by_index(int index);
+    bool load_preset_by_path(const std::string& path);
     bool delete_preset_by_index(int index);
     void ensure_factory_presets();
 
@@ -60,6 +61,9 @@ public:
 
     /** @brief Return the current preset name or "Untitled" if unset. */
     std::string current_preset_name() const;
+
+    /** @brief Serialise the current engine state to a JSON string for clipboard export. */
+    std::string serialise_current_preset_to_json() const;
 
     /** @brief Record the current engine state as the clean saved preset state. */
     void mark_clean();

@@ -15,8 +15,10 @@ public:
     Delay();
     void process(float* buffer, int num_samples) override;
     void set_sample_rate(int sample_rate) override;
+    void set_transport_state(float bpm) override;
     void reset() override;
     const char* name() const override { return "Delay"; }
+    const char* type_id() const override { return "Delay"; }
     std::vector<EffectParam>& params() override { return params_; }
 
 private:
@@ -31,6 +33,9 @@ private:
     float smoothed_feedback_ = 0.4f;
     float smoothed_tone_ = 0.7f;
     float smoothed_level_ = 0.5f;
+
+    //shortcut if bpm hasn't changed
+    float last_bpm_ = 0.0f;
 };
 
 } // namespace Amplitron

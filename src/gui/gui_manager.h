@@ -45,10 +45,13 @@ public:
     void shutdown();
     bool run_frame();
 
+    MidiManager& midi_manager() { return midi_manager_; }
+
 private:
     void render_menu_bar();
     void render_master_controls();
-
+    void toggle_audio_mute_state();
+    
     AudioEngine& engine_;
     CommandHistory command_history_;
     SDL_Window* window_ = nullptr;
@@ -62,6 +65,7 @@ private:
     bool show_tuner_ = false;
     int window_width_ = 1280;
     int window_height_ = 720;
+    bool audio_muted_ = false;
 
     // Smoothed meter values for master controls
     float smoothed_input_level_ = 0.0f;
@@ -78,6 +82,10 @@ private:
     GuiMidi gui_midi_;
     bool show_midi_ = false;
 
+    // Toast notification state
+    std::string toast_message_;
+    float toast_timer_ = 0.0f;
+
     // Update checking
     void check_for_updates();
     std::thread update_check_thread_;
@@ -85,10 +93,6 @@ private:
     bool has_new_release_ = false;
     std::string new_release_version_;
     std::string new_release_url_;
-
-    // Toast notification system
-    std::string m_toast_message;
-    float m_toast_timer = 0.0f;
 };
 
 } // namespace Amplitron

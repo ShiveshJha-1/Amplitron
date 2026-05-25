@@ -1,6 +1,7 @@
 # Amplitron - Guitar Amp Simulator
 
 [![CI Build](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-report-blue)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml)
 [![Release](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue)](https://github.com/sudip-mondal-2002/Amplitron/releases)
@@ -260,6 +261,8 @@ make build
 - **X button** (top-right of pedal) — remove pedal from chain
 - **Reset All** — reset all pedal parameters to defaults
 - **Audio → Start/Stop** — toggle the audio stream
+- **File → Copy Preset to Clipboard** — serialise the current pedal chain to JSON and copy to clipboard for easy sharing
+- **M** — quickly mute/unmute the audio stream while the main window is focused
 
 ### Default Signal Chain
 The application starts with a clean acoustic preset. Only EQ and Reverb are enabled by default — all other effects start bypassed:

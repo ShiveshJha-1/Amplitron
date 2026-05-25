@@ -1,6 +1,7 @@
 #include "audio/effects/looper.h"
 #include "audio/effect_factory.h"
 
+#include <ostream>
 #include <algorithm>
 #include <cmath>
 
@@ -16,6 +17,7 @@ Looper::Looper() {
     ensure_capacity();
     const float sr = static_cast<float>(std::max(sample_rate_, 1));
     loop_level_alpha_ = 1.0f - std::exp(-1.0f / (sr * kLoopLevelSmoothingSeconds));
+    crossfade_alpha_ = 1.0f - std::exp(-1.0f / (sr * kLoopLevelSmoothingSeconds));
     reset();
 }
 
@@ -23,6 +25,7 @@ void Looper::set_sample_rate(int sample_rate) {
     Effect::set_sample_rate(sample_rate);
     const float sr = static_cast<float>(std::max(sample_rate_, 1));
     loop_level_alpha_ = 1.0f - std::exp(-1.0f / (sr * kLoopLevelSmoothingSeconds));
+    crossfade_alpha_ = 1.0f - std::exp(-1.0f / (sr * kLoopLevelSmoothingSeconds));
     ensure_capacity();
     reset();
 }
@@ -43,6 +46,7 @@ void Looper::reset() {
     playhead_ = 0;
     loop_length_ = 0;
     loop_level_smoothed_ = clamp(params_[0].value, 0.0f, 1.0f);
+    crossfade_ms_smoothed_ = clamp(params_[1].value, 0.0f, 20.0f);
     pending_commands_.store(0, std::memory_order_relaxed);
     publish_ui_snapshot();
 }
@@ -63,8 +67,7 @@ void Looper::request_clear() {
     pending_commands_.fetch_or(CmdClear, std::memory_order_relaxed);
 }
 
-int Looper::crossfade_samples_rt() const {
-    const float ms = params_[1].value;
+int Looper::crossfade_samples_rt(float ms) const {
     const int xf = static_cast<int>(std::round((ms / 1000.0f) * static_cast<float>(sample_rate_)));
     return std::clamp(xf, 0, std::max(loop_length_ / 2, 0));
 }
@@ -157,12 +160,20 @@ void Looper::apply_pending_commands() {
 }
 
 void Looper::process(float* buffer, int num_samples) {
-    if (!enabled_) return;
+    if (!enabled_) {
+        apply_pending_commands();
+        publish_ui_snapshot();
+        return;
+    }
     process_core(buffer, nullptr, num_samples, false);
 }
 
 void Looper::process_stereo(float* left, float* right, int num_samples) {
-    if (!enabled_) return;
+    if (!enabled_) {
+        apply_pending_commands();
+        publish_ui_snapshot();
+        return;
+    }
     process_core(left, right, num_samples, true);
 }
 
@@ -170,6 +181,8 @@ void Looper::process_core(float* left, float* right, int num_samples, bool stere
     apply_pending_commands();
 
     const float loop_level_target = clamp(params_[0].value, 0.0f, 1.0f);
+    const float crossfade_target_ms = clamp(params_[1].value, 0.0f, 20.0f);
+    crossfade_ms_smoothed_ += crossfade_alpha_ * (crossfade_target_ms - crossfade_ms_smoothed_);
     const int cap = max_samples_;
     if (cap <= 0) {
         publish_ui_snapshot();
@@ -190,7 +203,7 @@ void Looper::process_core(float* left, float* right, int num_samples, bool stere
 
     if (has_loop_rt_ && loop_length_ > 0 &&
         (state_rt_ == State::Playing || state_rt_ == State::Overdubbing)) {
-        const int xf = crossfade_samples_rt();
+        const int xf = crossfade_samples_rt(crossfade_ms_smoothed_);
         for (int i = 0; i < num_samples; ++i) {
             loop_level_smoothed_ += loop_level_alpha_ * (loop_level_target - loop_level_smoothed_);
             const float loop_level = loop_level_smoothed_;
@@ -237,5 +250,30 @@ void Looper::process_core(float* left, float* right, int num_samples, bool stere
 
     publish_ui_snapshot();
 }
+
+std::ostream& operator<<(std::ostream& os, Looper::State s)
+{
+    switch (s)
+    {
+        case Looper::State::Empty:
+            return os << "Empty";
+
+        case Looper::State::Idle:
+            return os << "Idle";
+
+        case Looper::State::Recording:
+            return os << "Recording";
+
+        case Looper::State::Playing:
+            return os << "Playing";
+
+        case Looper::State::Overdubbing:
+            return os << "Overdubbing";
+
+        default:
+            return os << "Unknown";
+    }
+}
+
 
 } // namespace Amplitron

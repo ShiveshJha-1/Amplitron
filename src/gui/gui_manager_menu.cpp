@@ -7,6 +7,12 @@
 #include <SDL2/SDL.h>
 #include <cstdio>
 #include <string>
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #if defined(_WIN32)
 #include <windows.h>
 #include <shellapi.h>
@@ -108,21 +114,30 @@ void GuiManager::render_menu_bar() {
                 }
                 ImGui::EndPopup();
             }
-            ImGui::Separator();
             if (ImGui::MenuItem("Copy Preset to Clipboard")) {
-                if (pedal_board_) {
-                    std::string json_string = PresetManager::serialize_preset(*pedal_board_);
-                    if (!json_string.empty()) {
-                        ImGui::SetClipboardText(json_string.c_str());
-                        m_toast_message = "✓ Preset successfully copied!";
-                        m_toast_timer = 3.5f;
-                    } else {
-                        m_toast_message = "⚠ No preset data to copy.";
-                        m_toast_timer = 3.5f;
-                    }
+                if (!pedal_board_) {
+                    toast_message_ = "Clipboard unavailable.";
+                    toast_timer_ = 3.5f;
                 } else {
-                    m_toast_message = "⚠ Clipboard unavailable.";
-                    m_toast_timer = 3.5f;
+                    std::string json_string = gui_presets_.serialise_current_preset_to_json();
+                    if (!json_string.empty()) {
+#ifdef __EMSCRIPTEN__
+                        EM_ASM({
+                            var text = UTF8ToString($0);
+                            navigator.clipboard.writeText(text).then(function() {
+                            }).catch(function(err) {
+                                console.error("Clipboard write failed: ", err);
+                            });
+                        }, json_string.c_str());
+#else
+                        ImGui::SetClipboardText(json_string.c_str());
+#endif
+                        toast_message_ = "Preset copied to clipboard!";
+                        toast_timer_ = 3.5f;
+                    } else {
+                        toast_message_ = "No preset data to copy.";
+                        toast_timer_ = 3.5f;
+                    }
                 }
             }
             ImGui::Separator();
@@ -190,9 +205,10 @@ void GuiManager::render_menu_bar() {
         }
         if (ImGui::BeginMenu("Audio")) {
             if (engine_.is_running()) {
-                if (ImGui::MenuItem("Stop Audio")) engine_.stop();
-            } else {
-                if (ImGui::MenuItem("Start Audio")) {
+                if (ImGui::MenuItem("Stop Audio", "M")) engine_.stop();
+            } 
+            else {
+                if (ImGui::MenuItem("Start Audio", "M")) {
                     engine_.restart();
                 }
             }
