@@ -209,6 +209,9 @@ void PedalWidget::render_ir_cabinet_display(ImVec2 p0, float pedal_width) {
         float display_y = p0.y + 50;
 
         float btn_w = pedal_width - 30;
+        
+        // Load IR Button
+        ImGui::BeginGroup();
         ImGui::SetCursorScreenPos(ImVec2(p0.x + 15, display_y));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.20f, 0.16f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.30f, 0.18f, 1.0f));
@@ -223,9 +226,12 @@ void PedalWidget::render_ir_cabinet_display(ImVec2 p0, float pedal_width) {
             }
         }
         ImGui::PopStyleColor(3);
+        ImGui::EndGroup();
 
         display_y += 28;
 
+        // IR Info Section
+        ImGui::Dummy(ImVec2(0, 2));
         if (ir_cab->has_ir()) {
             const std::string& ir_name = ir_cab->ir_name();
             std::string display_name = ir_name;

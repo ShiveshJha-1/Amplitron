@@ -175,8 +175,11 @@ void GuiManager::render_master_controls() {
     // Input gain
     ImGui::Text("INPUT");
     float input_gain = engine_.get_input_gain();
-    if (ImGui::SliderFloat("##InputGain", &input_gain, 0.0f, 5.0f, "%.2f")) {
+    if (ImGui::SliderFloat("##InputGain", &input_gain, 0.0f, 5.0f, "%.2f dB")) {
         engine_.set_input_gain(input_gain);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Input gain: 0.0 - 5.0 dB");
     }
 
     ImGui::NextColumn();
@@ -217,8 +220,11 @@ void GuiManager::render_master_controls() {
     // Output gain
     ImGui::Text("OUTPUT");
     float output_gain = engine_.get_output_gain();
-    if (ImGui::SliderFloat("##OutputGain", &output_gain, 0.0f, 2.0f, "%.2f")) {
+    if (ImGui::SliderFloat("##OutputGain", &output_gain, 0.0f, 2.0f, "%.2f dB")) {
         engine_.set_output_gain(output_gain);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Output gain: 0.0 - 2.0 dB");
     }
 
     ImGui::Columns(1);
