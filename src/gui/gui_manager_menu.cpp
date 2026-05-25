@@ -109,7 +109,18 @@ void GuiManager::render_menu_bar() {
                 ImGui::EndPopup();
             }
             ImGui::Separator();
-#ifndef AMPLITRON_NO_DESKTOP_SHELL
+            if (ImGui::MenuItem("Copy Preset to Clipboard")) {
+                std::string json_string = PresetManager::serialize_preset(*pedal_board_);
+                if (!json_string.empty()) {
+                    ImGui::SetClipboardText(json_string.c_str());
+                    m_toast_message = "✓ Preset successfully copied!";
+                    m_toast_timer = 3.5f;
+                } else {
+                    m_toast_message = "⚠ No preset data to copy.";
+                    m_toast_timer = 3.5f;
+                }
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Change Presets Directory...")) {
                 std::string chosen = show_folder_dialog("Select Presets Directory");
                 if (!chosen.empty()) {

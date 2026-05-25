@@ -85,6 +85,10 @@ private:
     bool has_new_release_ = false;
     std::string new_release_version_;
     std::string new_release_url_;
+
+    // Toast notification system
+    std::string m_toast_message;
+    float m_toast_timer = 0.0f;
 };
 
 } // namespace Amplitron
