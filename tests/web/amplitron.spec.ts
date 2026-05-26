@@ -450,9 +450,11 @@ test.describe('Web MIDI Support', () => {
   });
   
   test('Gracefully handles missing Web MIDI support', async ({ page }) => {
-    // Remove Web MIDI API from the browser
+    // Remove Web MIDI API from the browser.
+    // Use assignment rather than delete because requestMIDIAccess may be
+    // a non-configurable getter on the Navigator prototype.
     await page.addInitScript(() => {
-      delete (window.navigator as any).requestMIDIAccess;
+      (window.navigator as any).requestMIDIAccess = undefined;
       console.log('[TEST-MOCK] Web MIDI API removed');
     });
     
@@ -496,7 +498,8 @@ test.describe('Modular Graph Canvas Interactions', () => {
 
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
-    await page.mouse.click(cx, cy, { button: 'right' });
+    // Single continuous right-click drag — do NOT click() first,
+    // because that fires mousedown+mouseup and breaks the drag gesture.
     await page.mouse.move(cx, cy);
     await page.mouse.down({ button: 'right' });
     await page.mouse.move(cx + 80, cy + 60, { steps: 10 });
