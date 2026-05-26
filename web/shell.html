@@ -333,6 +333,12 @@
       return Math.sqrt(dx * dx + dy * dy);
     }
 
+    var rightDrag = false;
+    var rightDragStarted = false;
+    var rightLastX = 0;
+    var rightLastY = 0;
+    var rightDragThreshold = 4;
+
     c.addEventListener('touchstart', function(e) {
       if (e.touches.length === 2) {
         e.preventDefault();
@@ -369,6 +375,44 @@
 
     c.addEventListener('touchcancel', function() {
       tracking = false;
+    });
+
+    c.addEventListener('mousedown', function(e) {
+      if (e.button === 2) {
+        rightDrag = true;
+        rightDragStarted = false;
+        rightLastX = e.clientX;
+        rightLastY = e.clientY;
+      }
+    });
+
+    c.addEventListener('mousemove', function(e) {
+      if (!rightDrag || e.buttons !== 2) return;
+      var dx = e.clientX - rightLastX;
+      var dy = e.clientY - rightLastY;
+      if (!rightDragStarted) {
+        if (Math.abs(dx) + Math.abs(dy) >= rightDragThreshold) {
+          rightDragStarted = true;
+        } else {
+          return;
+        }
+      }
+      var rect = c.getBoundingClientRect();
+      var localX = e.clientX - rect.left;
+      var localY = e.clientY - rect.top;
+      if (Module && Module.ccall) {
+        Module.ccall('on_canvas_touch_gesture', null, ['number','number','number','number','number'], [dx, dy, 0.0, localX, localY]);
+      }
+      rightLastX = e.clientX;
+      rightLastY = e.clientY;
+      e.preventDefault();
+    });
+
+    c.addEventListener('mouseup', function(e) {
+      if (e.button === 2) {
+        rightDrag = false;
+        rightDragStarted = false;
+      }
     });
 
     c.addEventListener('wheel', function(e) {
