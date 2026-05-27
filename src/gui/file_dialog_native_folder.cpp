@@ -16,6 +16,7 @@
 #endif
 
 #ifdef __APPLE__
+#include <TargetConditionals.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -26,6 +27,12 @@
 #endif
 
 namespace Amplitron {
+
+#ifdef AMPLITRON_HEADLESS
+std::string show_folder_dialog(const std::string&) {
+    return "";
+}
+#else
 
 #ifdef _WIN32
 std::string show_folder_dialog(const std::string& title) {
@@ -43,7 +50,7 @@ std::string show_folder_dialog(const std::string& title) {
     return ok ? std::string(path) : "";
 }
 
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !TARGET_OS_IOS
 std::string show_folder_dialog(const std::string& title) {
     // Sanitize title for embedding in an AppleScript string literal:
     // escape backslashes first, then double-quotes.
@@ -143,5 +150,7 @@ std::string show_folder_dialog(const std::string& title) {
     return result;
 }
 #endif
+
+#endif // AMPLITRON_HEADLESS
 
 } // namespace Amplitron

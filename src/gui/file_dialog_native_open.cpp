@@ -13,6 +13,7 @@
 #endif
 
 #ifdef __APPLE__
+#include <TargetConditionals.h>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -24,6 +25,12 @@
 #endif
 
 namespace Amplitron {
+
+#ifdef AMPLITRON_HEADLESS
+std::string show_open_dialog(const std::string&, const std::string&, const std::string&) {
+    return "";
+}
+#else
 
 #ifdef _WIN32
 std::string show_open_dialog(const std::string& title,
@@ -58,7 +65,7 @@ std::string show_open_dialog(const std::string& title,
     return "";
 }
 
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !TARGET_OS_IOS
 std::string show_open_dialog(const std::string& title,
                              const std::string& /*filter_desc*/,
                              const std::string& filter_ext) {
@@ -169,5 +176,7 @@ std::string show_open_dialog(const std::string& title,
     return result;
 }
 #endif
+
+#endif // AMPLITRON_HEADLESS
 
 } // namespace Amplitron

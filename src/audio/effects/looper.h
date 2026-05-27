@@ -2,6 +2,7 @@
 
 #include "audio/effect.h"
 
+#include<ostream>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -34,6 +35,7 @@ public:
     void set_sample_rate(int sample_rate) override;
     void reset() override;
     const char* name() const override { return "Looper"; }
+    const char* type_id() const override { return "Looper"; }
     std::vector<EffectParam>& params() override { return params_; }
 
     // --- UI control (thread-safe) ---
@@ -77,7 +79,8 @@ private:
 
     float loop_level_smoothed_ = 0.80f;
     float loop_level_alpha_ = 0.0f;
-
+    float crossfade_ms_smoothed_ = 5.0f;
+    float crossfade_alpha_ = 0.0f;
     // UI-visible atomics (written from audio thread, read by GUI thread).
     std::atomic<uint32_t> ui_state_{static_cast<uint32_t>(State::Empty)};
     std::atomic<int> ui_has_loop_{0};
@@ -102,8 +105,10 @@ private:
         return x / (1.0f + ax);
     }
 
-    inline int crossfade_samples_rt() const;
+    inline int crossfade_samples_rt(float ms) const;
     inline void process_core(float* left, float* right, int num_samples, bool stereo);
 };
 
+std::ostream& operator<<(std::ostream& os, Looper::State s);
 } // namespace Amplitron
+

@@ -3,6 +3,7 @@
 #include "gui/theme.h"
 #include "gui/file_dialog.h"
 #include "gui/command.h"
+#include "gui/gui_graph_state.h"
 #include "preset_manager.h"
 
 #include "gui/gl_setup.h"
@@ -14,6 +15,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#include <SDL2/SDL.h>
 #if defined(__APPLE__)
 #  include <TargetConditionals.h>
 #endif
@@ -38,13 +40,21 @@ namespace Amplitron {
 
 GuiManager::GuiManager(AudioEngine& engine)
     : engine_(engine),
+      command_history_(),
       gui_settings_(engine),
       gui_presets_(engine, command_history_),
       gui_recording_(engine),
       gui_tuner_(engine, std::make_shared<TunerPedal>()),
       gui_analyzer_(engine),
-      gui_snapshots_(engine, command_history_),
-      gui_midi_(midi_manager_) {}
+      gui_snapshots_(engine, command_history_), // <-- UNCOMMENT THIS FIELD HERE!
+      gui_midi_(midi_manager_) 
+{
+    pedal_board_ = std::make_unique<PedalBoard>(engine_, command_history_, &gui_midi_);
+    gui_presets_.set_pedal_board(pedal_board_.get());
+    gui_presets_.set_midi_manager(&midi_manager_);
+    
+    gui_snapshots_.set_pedal_board(pedal_board_.get()); // <-- UNCOMMENT THIS ACTION TOO!
+}
 
 GuiManager::~GuiManager() {
     shutdown();
@@ -113,6 +123,8 @@ bool GuiManager::initialize(int width, int height) {
         if (dpi_scale <= 0.0f) dpi_scale = 1.0f;
     }
 #endif
+
+    GuiGraphState::get_instance().dpi_scale = dpi_scale;
 
     {
         const float base_font_size = 14.0f;
